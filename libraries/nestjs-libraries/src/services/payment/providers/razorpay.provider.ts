@@ -536,10 +536,15 @@ export class RazorpayProvider extends PaymentProviderAbstract {
       organizationId
     );
 
-    const subscription = await razorpay.subscriptions.cancel(
-      org.paymentId,
-      true
-    );
+    // A trial/just-authenticated subscription has no active billing cycle
+    // yet, so Razorpay rejects a cycle-end cancel with "no billing cycle is
+    // going on" - fall back to cancelling it immediately in that case.
+    let subscription;
+    try {
+      subscription = await razorpay.subscriptions.cancel(org.paymentId, true);
+    } catch (err) {
+      subscription = await razorpay.subscriptions.cancel(org.paymentId, false);
+    }
 
     // cancelAtCycleEnd leaves the subscription 'active' in Razorpay until the
     // period actually ends (it has no dedicated "cancels at" field like
@@ -547,23 +552,32 @@ export class RazorpayProvider extends PaymentProviderAbstract {
     // row immediately rather than waiting on a webhook, since Razorpay
     // doesn't reliably send one for this specific transition, and the
     // frontend uses this response's cancel_at to update the UI right away.
+    // An immediate cancel (no current_end) has nothing left to bill, so
+    // remove the subscription record outright instead.
     const cancelAt = subscription.current_end;
-    if (currentSubscription && cancelAt) {
-      await this._subscriptionService.createOrUpdateSubscriptionByOrg(
-        false,
-        organizationId,
-        RAZORPAY_PROVIDER,
-        currentSubscription.identifier || id,
-        currentSubscription.totalChannels,
-        currentSubscription.subscriptionTier as Billing,
-        currentSubscription.period as Period,
-        cancelAt
-      );
+    if (currentSubscription) {
+      if (cancelAt) {
+        await this._subscriptionService.createOrUpdateSubscriptionByOrg(
+          false,
+          organizationId,
+          RAZORPAY_PROVIDER,
+          currentSubscription.identifier || id,
+          currentSubscription.totalChannels,
+          currentSubscription.subscriptionTier as Billing,
+          currentSubscription.period as Period,
+          cancelAt
+        );
+      } else {
+        await this._subscriptionService.deleteSubscriptionByOrgId(
+          organizationId,
+          RAZORPAY_PROVIDER
+        );
+      }
     }
 
     return {
       id,
-      cancel_at: cancelAt ? new Date(cancelAt * 1000) : undefined,
+      cancel_at: new Date((cancelAt || Math.floor(Date.now() / 1000)) * 1000),
     };
   }
 

@@ -10,15 +10,11 @@ export const BillingComponent = () => {
   const load = useCallback(async (path: string) => {
     return await (await fetch(path)).json();
   }, []);
-  const { isLoading: isLoadingTier, data: tiers } = useSWR(
-    '/user/subscription/tiers',
-    load
-  );
   const { isLoading: isLoadingSubscription, data: subscription } = useSWR(
     '/user/subscription',
     load
   );
-  if (isLoadingSubscription || isLoadingTier) {
+  if (isLoadingSubscription) {
     return <LoadingComponent />;
   }
   return <MainBillingComponent sub={subscription?.subscription} />;

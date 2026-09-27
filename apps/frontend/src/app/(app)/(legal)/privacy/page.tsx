@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
   return (
     <>
       <h1 className="text-[28px] font-semibold mb-[8px]">Privacy Policy</h1>
-      <P>Last updated: 17 September 2026</P>
+      <P>Last updated: 27 September 2026</P>
 
       <P>
         SocioBird (&quot;SocioBird&quot;, &quot;we&quot;, &quot;us&quot; or &quot;our&quot;) is a
@@ -72,7 +72,102 @@ export default function PrivacyPolicyPage() {
         explicitly connect.
       </P>
 
-      <H3>2.3 Content you create or upload</H3>
+      <H3>2.3 Google user data (YouTube and Google Business Profile)</H3>
+      <P>
+        When you connect a YouTube channel or a Google Business Profile
+        location, we access your Google user data through the Google APIs
+        listed below, using the OAuth scope shown for each:
+      </P>
+      <Ul>
+        <li>
+          <strong>YouTube Data API</strong> (
+          <code>youtube</code>, <code>youtube.upload</code>,{' '}
+          <code>youtube.force-ssl</code>, <code>youtube.readonly</code>,{' '}
+          <code>youtubepartner</code>) — to list your channel and existing
+          videos so you can pick where to publish, to upload and publish the
+          videos you schedule through SocioBird on your behalf, and to set
+          their title, description, thumbnail, and privacy status as you
+          configure them.
+        </li>
+        <li>
+          <strong>YouTube Analytics API</strong> (
+          <code>yt-analytics.readonly</code>) — to read view, engagement, and
+          performance metrics for the videos you publish through the
+          service, so we can show them to you in SocioBird's analytics
+          dashboard.
+        </li>
+        <li>
+          <strong>Google Business Profile API</strong> (
+          <code>business.manage</code>) — to list the business locations you
+          manage and to publish the posts and updates you schedule through
+          SocioBird to your Google Business Profile.
+        </li>
+        <li>
+          <strong>Basic profile scopes</strong> (
+          <code>userinfo.profile</code>, <code>userinfo.email</code>) — to
+          identify your Google account and show its name/avatar in the
+          channel picker.
+        </li>
+      </Ul>
+      <P>
+        <strong>Our use of this data is limited to what is described above</strong>
+        {' '}and to operating and improving SocioBird's user-facing features.
+        We do not use Google user data to serve advertisements, and we do
+        not sell, transfer, or share Google user data with third parties
+        except: (a) as necessary to provide the feature you requested (for
+        example, sending your scheduled video to YouTube's own servers so it
+        can be published), (b) to comply with applicable law, respond to a
+        valid legal process, or protect the rights, property, or safety of
+        SocioBird, our users, or the public, or (c) as part of a merger,
+        acquisition, or sale of assets, provided the recipient continues to
+        honor the commitments in this policy. No human at SocioBird reads
+        your Google user data except where you have given us specific
+        permission to do so (for example, while diagnosing a support ticket
+        you filed), where it is necessary for security purposes such as
+        investigating abuse, to comply with applicable law, or with
+        aggregated and anonymized data for internal operations. Our handling
+        of data obtained through Google APIs adheres to the{' '}
+        <a
+          href="https://developers.google.com/terms/api-services-user-data-policy"
+          className="underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Google API Services User Data Policy
+        </a>
+        , including the Limited Use requirements, and, for the YouTube API
+        Services specifically, the{' '}
+        <a
+          href="https://www.youtube.com/t/terms"
+          className="underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          YouTube Terms of Service
+        </a>
+        .
+      </P>
+      <P>
+        We store the OAuth access and refresh tokens for your connected
+        Google account (encrypted at rest) for as long as the channel stays
+        connected, plus the channel/location metadata and post-level
+        analytics described above. Disconnecting a channel from your
+        SocioBird settings immediately revokes the token with Google and
+        deletes it, along with the associated cached metadata, from our
+        database. You can also revoke SocioBird's access at any time
+        directly from your{' '}
+        <a
+          href="https://myaccount.google.com/permissions"
+          className="underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Google Account permissions page
+        </a>
+        , independently of this app.
+      </P>
+
+      <H3>2.4 Content you create or upload</H3>
       <P>
         Post text, images, and videos you upload or generate through the service are
         stored either on our own server disk or in a Cloudflare R2 bucket we control,
@@ -81,7 +176,7 @@ export default function PrivacyPolicyPage() {
         when you explicitly use that feature.
       </P>
 
-      <H3>2.4 Billing data</H3>
+      <H3>2.5 Billing data</H3>
       <P>
         If you subscribe to a paid plan, your payment is handled directly by
         Razorpay or Stripe (for web checkout) or by Apple/Google via RevenueCat (for
@@ -91,21 +186,21 @@ export default function PrivacyPolicyPage() {
         account status.
       </P>
 
-      <H3>2.5 Logs and usage data</H3>
+      <H3>2.6 Logs and usage data</H3>
       <P>
         We keep standard server logs (IP address, browser/device information,
         timestamps, pages and API routes accessed) for security, debugging, and
         abuse-prevention purposes.
       </P>
 
-      <H3>2.6 Support communications</H3>
+      <H3>2.7 Support communications</H3>
       <P>
         If you email us or otherwise contact us for support, we keep that
         correspondence, including any attachments, to resolve your request and for
         our own record-keeping.
       </P>
 
-      <H3>2.7 Cookies and similar technologies</H3>
+      <H3>2.8 Cookies and similar technologies</H3>
       <P>
         We use a small number of strictly necessary cookies to keep you signed in
         and to remember basic preferences (e.g. language, theme). Depending on how

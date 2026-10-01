@@ -7,7 +7,6 @@ import {
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { SocialAbstract } from '@gitroom/nestjs-libraries/integrations/social.abstract';
-import { timer } from '@gitroom/helpers/utils/timer';
 import dayjs from 'dayjs';
 import { Integration } from '@prisma/client';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
@@ -16,11 +15,6 @@ type BotsabCredentials = {
   url: string;
   apiKey: string;
   instanceId: string;
-};
-
-type BotsabTarget = {
-  jid: string;
-  releaseURL: string;
 };
 
 // A Botsab "list" (either a saved group list or a saved contact list) is
@@ -227,78 +221,50 @@ export class BotsabProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
-  // Botsab's send endpoint takes a single attachment per message, so only the
-  // first media item is used - any extra ones attached to the post are dropped.
+  // Botsab's campaign endpoint caps image/video captions at 1024 chars (its
+  // direct single-send endpoint and this provider's own maxLength() of 4096
+  // don't), so a longer caption has to be trimmed here or campaign creation
+  // is rejected outright for posts that used to go through fine.
   private messageBody(media: MediaContent | undefined, message: string) {
     if (!media) {
       return { type: 'text' as const, text: message };
     }
 
+    const caption = message.slice(0, 1024);
     if (media.type === 'video') {
-      return { type: 'video' as const, url: media.path, caption: message };
+      return { type: 'video' as const, url: media.path, caption };
     }
 
-    return { type: 'image' as const, url: media.path, caption: message };
+    return { type: 'image' as const, url: media.path, caption };
   }
 
-  private async targets(
-    body: BotsabCredentials,
-    internalId: string
-  ): Promise<BotsabTarget[]> {
-    const { kind, listId } = parseListRef(internalId);
-
-    if (kind === 'group') {
-      const list = await this.request(body, `/group-lists/${listId}`);
-      return (list.members || []).map((member: any) => ({
-        jid: member.group_jid,
-        releaseURL: '',
-      }));
-    }
-
-    const list = await this.request(body, `/contact-lists/${listId}`);
-    // Contact list numbers are free-typed in Botsab (often with a leading "+"
-    // or spacing), but a WhatsApp JID is digits only - an unsanitized number
-    // silently fails to deliver instead of erroring.
-    return (list.members || []).map((member: any) => {
-      const phone = String(member.phone_number).replace(/[^0-9]/g, '');
-      return {
-        jid: `${phone}@s.whatsapp.net`,
-        releaseURL: `https://wa.me/${phone}`,
-      };
-    });
-  }
-
-  // Botsab's own bulk-campaign sender retries a message up to 3 times when
-  // Baileys hasn't warmed up the E2E session for a chat/group yet ("No
-  // sessions"), but its plain single-send endpoint (the one used here) does
-  // not - without this, a first-time send to a group can report success from
-  // Botsab's HTTP layer while WhatsApp silently drops the undelivered message.
-  private async sendWithRetry(
-    body: BotsabCredentials,
-    target: BotsabTarget,
-    messageBody: Record<string, unknown>
-  ) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        return await this.request(
-          body,
-          `/instances/${body.instanceId}/messages/send`,
-          {
-            method: 'POST',
-            body: JSON.stringify({ to: target.jid, ...messageBody }),
-          }
-        );
-      } catch (err) {
-        const detail = String((err as any)?.details?.[0]?.json || '');
-        if (attempt < 3 && detail.includes('No sessions')) {
-          await timer(3000 * attempt);
-          continue;
-        }
-        throw err;
-      }
-    }
-    throw new Error('unreachable');
-  }
+  // Delivery pacing for group posts, handed to Botsab's own campaign runner
+  // instead of this provider sending message-by-message. Botsab's built-in
+  // group defaults (3-8 min between groups, 8/day cap) are tuned for a
+  // standalone bulk-messaging tool run over days; a post scheduled from
+  // SocioBird's calendar needs to actually finish within a few hours, so
+  // this keeps the same shuffled/batched/randomized-delay shape but on a
+  // faster clock. maxRecipients/dailyLimit are raised to Botsab's own hard
+  // cap (200) purely so a list anywhere near its max size (100 groups)
+  // isn't silently truncated or stalled waiting for the next calendar day.
+  private readonly GROUP_CAMPAIGN_OPTIONS = {
+    minDelayMs: 60_000,
+    maxDelayMs: 180_000,
+    batchSize: 5,
+    batchPauseMs: 600_000,
+    shuffle: true,
+    appendSuffix: true,
+    suffixType: 'invisible' as const,
+    suffixLength: 4,
+    sendTypingIndicator: true,
+    markReadBeforeSend: true,
+    maxRecipients: 200,
+    sendStartHour: 7,
+    sendEndHour: 23,
+    dailyLimit: 200,
+    checkNumberExists: false,
+    respectOptOut: true,
+  };
 
   async post(
     id: string,
@@ -312,50 +278,32 @@ export class BotsabProvider extends SocialAbstract implements SocialProvider {
       firstPost.media?.[0],
       firstPost.message
     );
+    const { kind, listId } = parseListRef(integration.internalId);
 
-    const targets = await this.targets(body, integration.internalId);
-    // The workflow expects exactly one PostResponse per PostDetails item (every
-    // other provider only ever sends one message), so a multi-target post is
-    // fanned out here and folded back into a single result - a failure on one
-    // target must not abort targets already sent, or a retry would resend them.
-    const sent: { messageId: string; releaseURL: string }[] = [];
-    const failedJids: string[] = [];
-    let lastError: unknown;
-
-    for (const [index, target] of targets.entries()) {
-      try {
-        const data = await this.sendWithRetry(body, target, messageBody);
-        sent.push({ messageId: data.messageId, releaseURL: target.releaseURL });
-      } catch (err) {
-        lastError = err;
-        failedJids.push(target.jid);
+    // Hand off to Botsab's own campaign runner instead of sending to every
+    // group/contact from here - it owns the anti-ban pacing (randomized
+    // delays, batching, shuffling, image-hash variation) and runs it in the
+    // background, so this call returns as soon as Botsab accepts the
+    // campaign rather than blocking for the hours the send itself takes.
+    const campaign = await this.request(
+      body,
+      `/instances/${body.instanceId}/campaigns`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          list_type: kind,
+          list_id: listId,
+          message: messageBody,
+          ...(kind === 'group' ? { options: this.GROUP_CAMPAIGN_OPTIONS } : {}),
+        }),
       }
-
-      // Sequential sends with a short delay, mirroring Botsab's own sendBulk
-      // default, so a multi-target post doesn't trip WhatsApp's anti-spam bans.
-      if (index < targets.length - 1) {
-        await timer(1000);
-      }
-    }
-
-    if (failedJids.length) {
-      console.log(
-        `Botsab: failed to send to ${failedJids.length}/${targets.length} targets`,
-        failedJids
-      );
-    }
-
-    // Nothing went through - surface the last failure as-is so the workflow's
-    // usual refresh-token/disconnect/retry classification still applies.
-    if (!sent.length) {
-      throw lastError;
-    }
+    );
 
     return [
       {
         id: firstPost.id,
-        postId: sent.map((s) => s.messageId).join(','),
-        releaseURL: sent.find((s) => s.releaseURL)?.releaseURL || '',
+        postId: campaign.id,
+        releaseURL: '',
         status: 'completed',
       },
     ];

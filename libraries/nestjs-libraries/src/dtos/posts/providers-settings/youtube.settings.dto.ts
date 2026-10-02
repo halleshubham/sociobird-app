@@ -7,6 +7,7 @@ import {
   MaxLength,
   MinLength,
   registerDecorator,
+  ValidateIf,
   ValidateNested,
   ValidationArguments,
   ValidationOptions,
@@ -64,11 +65,13 @@ export class YoutubeTagsSettings {
 }
 
 export class YoutubeSettingsDto {
+  // Optional: when left blank, the provider derives it from the first line
+  // of the post's message and uses the rest as the description instead.
+  @ValidateIf((o) => !!o.title)
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  @IsDefined()
-  title: string;
+  title?: string;
 
   @IsIn(['public', 'private', 'unlisted'])
   @IsDefined()

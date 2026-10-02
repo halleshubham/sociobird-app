@@ -24,6 +24,7 @@ import { createReadStream, statSync } from 'fs';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/temporal/temporal.heartbeat';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
+import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 
 const clientAndYoutube = () => {
   const client = new google.auth.OAuth2({
@@ -550,6 +551,30 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     );
   }
 
+  // YouTube requires a title, but the composer is shared across every
+  // platform in a post and most of them have no such concept, so when no
+  // title was set here, the first line of the message becomes the title and
+  // the remaining lines become the description instead of repeating it.
+  private titleAndDescription(
+    message: string,
+    explicitTitle?: string
+  ): { title: string; description: string } {
+    if (explicitTitle) {
+      return { title: explicitTitle, description: message };
+    }
+
+    const lines = stripHtmlValidation('normal', message, true)
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const [firstLine, ...rest] = lines;
+    return {
+      title: (firstLine || 'Untitled video').slice(0, 100),
+      description: rest.join('\n') || message,
+    };
+  }
+
   async postPending(
     id: string,
     accessToken: string,
@@ -559,6 +584,10 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     const [firstPost, ...comments] = postDetails;
 
     const { settings }: { settings: YoutubeSettingsDto } = firstPost;
+    const { title, description } = this.titleAndDescription(
+      firstPost.message,
+      settings.title
+    );
     const path = firstPost?.media?.[0]?.path!;
     const videoSize = await this.youtubeMediaSize(path);
 
@@ -577,8 +606,8 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
         },
         body: JSON.stringify({
           snippet: {
-            title: settings.title,
-            description: firstPost?.message,
+            title,
+            description,
             ...(settings?.tags?.length
               ? { tags: settings.tags.map((p) => p.label) }
               : {}),

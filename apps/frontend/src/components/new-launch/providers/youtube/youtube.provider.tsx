@@ -41,7 +41,12 @@ const YoutubeSettings: FC = () => {
   const { register, control } = useSettings();
   return (
     <div className="flex flex-col">
-      <Input label="Title" {...register('title')} maxLength={100} />
+      <Input
+        label="Title (optional)"
+        placeholder="Defaults to the first line of your post"
+        {...register('title')}
+        maxLength={100}
+      />
       <Select
         label="Type"
         {...register('type', {

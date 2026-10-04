@@ -251,6 +251,29 @@ export const useMenuItem = () => {
       requireBilling: true,
     },
     {
+      name: t('docs', 'Docs'),
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="21"
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <path
+            d="M4 19.5V5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2Zm0 0a2 2 0 0 0 2 2h13v-3M9 7.5h6M9 11h6"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+      path: 'https://shackyapps.in/docs/sociobird/',
+      role: ['ADMIN', 'SUPERADMIN', 'USER'],
+      requireBilling: true,
+    },
+    {
       name: t('billing', 'Billing'),
       icon: (
         <svg

@@ -15,7 +15,6 @@ on:
   push:
     branches:
       - main
-      - ccr-f25aa42d-th2alo   # TEMPORARY: lets the pipeline be tested from this branch
   workflow_dispatch:
 
 permissions:
@@ -112,7 +111,8 @@ jobs:
 
           docker exec temporal temporal task-queue describe --task-queue main --address temporal:7233 \
             | tee /tmp/tq.txt
-          grep -Eqi "(identity|last ?access|workflow poller)" /tmp/tq.txt \
+          # a real poller row looks like: "UNVERSIONED  workflow  1@<host>  now  100000"
+          grep -Eq "(workflow|activity) +[0-9]+@" /tmp/tq.txt \
             || fail "Temporal reports no pollers on the main task queue"
           echo "Boot check passed."
 

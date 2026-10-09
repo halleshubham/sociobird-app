@@ -25,6 +25,12 @@ export class UploadFactory {
     }
   }
 
+  // Direct-to-storage multipart upload needs presigned URLs, so like
+  // normalization it is only available on cloud storage
+  static multipartEnabled() {
+    return process.env.STORAGE_PROVIDER === 'cloudflare';
+  }
+
   // Normalization needs presigned URLs, so it is only available on cloud storage
   static processorEnabled() {
     return (

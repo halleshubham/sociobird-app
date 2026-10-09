@@ -9,11 +9,14 @@ import {
   Post,
   Put,
   Query,
+  Req,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { streamUploadOptions } from '@gitroom/nestjs-libraries/upload/multer.stream.engine';
+import { Request, Response } from 'express';
 import { ApiTags } from '@nestjs/swagger';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
@@ -21,6 +24,8 @@ import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/in
 import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import handleR2Upload from '@gitroom/nestjs-libraries/upload/r2.uploader';
+import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { GetPostsDto } from '@gitroom/nestjs-libraries/dtos/posts/get.posts.dto';
 import { ChangePostStatusDto } from '@gitroom/nestjs-libraries/dtos/posts/change.post.status.dto';
@@ -79,6 +84,43 @@ export class PublicIntegrationsController {
     }
 
     return this._mediaService.saveFile(org.id, file.filename, file.path);
+  }
+
+  // Same multipart flow the web app uses (create-multipart-upload, sign-part,
+  // list-parts, complete-multipart-upload, abort-multipart-upload), so large
+  // files go from the client straight to storage in parts instead of through
+  // this server and the proxy in front of it
+  @Post('/upload/:endpoint')
+  async uploadMultipart(
+    @GetOrgFromRequest() org: Organization,
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('endpoint') endpoint: string
+  ) {
+    Sentry.metrics.count('public_api-request', 1);
+    if (!UploadFactory.multipartEnabled()) {
+      return res.status(400).json({
+        msg: 'Multipart upload is not available, use /public/v1/upload instead',
+      });
+    }
+
+    const upload = await handleR2Upload(endpoint, req, res);
+    // a rejected or failed completion has already answered with its own status
+    if (endpoint !== 'complete-multipart-upload' || res.headersSent) {
+      return upload;
+    }
+
+    // @ts-ignore
+    const name = upload.Location.split('/').pop();
+    const saved = await this._mediaService.saveUploadedFile(
+      org.id,
+      name,
+      // @ts-ignore
+      upload.Location,
+      req.body?.file?.name || undefined
+    );
+
+    res.status(200).json({ ...upload, saved });
   }
 
   @Post('/upload-from-url')

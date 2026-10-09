@@ -89,8 +89,11 @@ jobs:
             -e TEMPORAL_ADDRESS=temporal:7233 \
             -e JWT_SECRET=ci-boot-check-secret -e FRONTEND_URL=http://localhost:4200 \
             -e IS_GENERAL=true -e ORCHESTRATOR_PORT=3002 \
+            -e CHECKPOINT_DISABLE=1 -e PRISMA_HIDE_UPDATE_MESSAGE=1 \
             candidate:ci sh -c '
-              pnpm run prisma-db-push &&
+              echo "[boot-check] prisma db push starting" &&
+              { timeout 120 pnpm run prisma-db-push || timeout 120 pnpm run prisma-db-push; } &&
+              echo "[boot-check] prisma db push finished" &&
               cd apps/orchestrator &&
               exec node --experimental-require-module ./dist/apps/orchestrator/src/main.js'
 
@@ -105,7 +108,12 @@ jobs:
               healthy=1; break
             fi
           done
-          [ "$started" = 1 ] || fail "never reached 'Starting Nest application' (hung or crashed while loading)"
+          if [ "$started" != 1 ]; then
+            if ! docker logs app 2>&1 | grep -q "prisma db push finished"; then
+              fail "the database setup step (prisma db push) did not finish, so the orchestrator was never launched"
+            fi
+            fail "never reached 'Starting Nest application' (hung or crashed while loading)"
+          fi
           [ "$running" = 1 ] || fail "worker for the main task queue never reported RUNNING"
           [ "$healthy" = 1 ] || fail "health endpoint did not return 200"
 

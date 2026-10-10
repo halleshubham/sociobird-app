@@ -13,6 +13,9 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
   "Priority support" and "White-glove onboarding" claims, replaced with real limits (webhooks, Auto Post, AI image generator);
   usage pages now say "draft and review" because there is no approval workflow; meta descriptions say "13+ channels".
   **Lesson:** plan copy must be checked against `pricing.ts`, not copied from older marketing text.
+- **Code-level feature verification** (`.claude/upstream/features.py`, `FEATURES.md`, `features.tsv`): replaced "trust the commit history" with tree-based checks.
+  Found: Polotno is only partly removed (16.5k-line CSS and a compose var remain), a Botsab retry/sanitising claim from commit messages was no longer in the code,
+  and fork-only changes to Reddit, GMB, LinkedIn and MCP loading that no divergence note mentioned. `git log BASE..HEAD` is misleading (it includes Dec 2025 upstream-line commits).
 - **A4 flyer** for sociobird.app generated (HTML to PDF with Playwright; not stored in the repo).
 - **Server memory survey** of the three Coolify servers (see OPERATIONS.md). No server was short of memory.
 - **Docs site** (`shackyapps-landing` #18): media library limits, "Upload media with the API", a Mobile app page, FAQ entry.
@@ -41,7 +44,8 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ## 2026-10-01 to 2026-10-03
 
-- #7: Botsab group/contact posts bypassed anti-ban pacing (fixed). Botsab sends also retry Baileys "No sessions" errors and sanitise phone numbers (Sep 23).
+- #7: Botsab group/contact posts bypassed anti-ban pacing (fixed): `botsab.provider.ts` now hands them to Botsab's campaign runner with `GROUP_CAMPAIGN_OPTIONS`.
+  (A Sep 23 commit added a "No sessions" retry in our provider; the code no longer contains it, so pacing and retries are Botsab's job now. Same for phone-number sanitising: no longer in our provider.)
 - Docs written for SocioBird in `shackyapps-landing/docs-site/sociobird/` (11 pages, real screenshots, four tutorial videos) and linked from the app and from sociobird.app.
   Several docs were first written without running the app and were rewritten from the live QAT app after review. **Run the app before documenting it.**
 

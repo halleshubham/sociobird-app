@@ -100,7 +100,9 @@ existing activity's parameters; add a new activity. Example already in the tree:
 - **The plan cards on sociobird.app are hand-copied** (`sociobird-site/index.html` and `global.html`, `PLANS` array).
   When pricing or gating changes here, change the site too, and only list features that exist in `pricing.ts`.
   There is no approval workflow, no "priority support" and no "white-glove onboarding" feature; do not advertise them.
-- `IS_GENERAL` changes paywall/branding behaviour. Read commit `3cbce54` before touching that logic.
+- `IS_GENERAL` is a mode flag read on both the server and the client (`libraries/helpers/src/utils/is.general.server.side.ts`, `react-shared-libraries/src/helpers/is.general.tsx`).
+  Among other things it picks the landing route after login (`/launches` when set, `/analytics` otherwise, in `apps/frontend/src/proxy.ts`) and branding domains.
+  Billing/paywall logic once depended on it by mistake (commit `3cbce54`); check how a change interacts with it.
 
 ## Channels and WhatsApp
 
@@ -108,11 +110,14 @@ existing activity's parameters; add a new activity. Example already in the tree:
   dev.to, Hashnode, Lemmy, ListMonk and more). Providers that are not ready are flagged "coming soon" in
   `apps/frontend/src/components/launches/add.provider.component.tsx`.
 - **Botsab** is our WhatsApp gateway (a separate product). Provider: `integrations/social/botsab.provider.ts`; frontend:
-  `components/new-launch/providers/botsab/`. It applies anti-ban pacing and retries Baileys "No sessions" errors.
+  `components/new-launch/providers/botsab/`. `post()` does not send message by message: it creates a **campaign** on Botsab (`POST /instances/{id}/campaigns`) and Botsab's own runner does the anti-ban pacing
+  (group posts: 60 to 180 s between sends, batches of 5 with 10-minute pauses, shuffled, send window 07:00 to 23:00, daily cap 200; see `GROUP_CAMPAIGN_OPTIONS`).
+  Captions are cut to 1024 characters for media.
 
 ## AI, MCP and agents
 
-`libraries/nestjs-libraries/src/chat/`: agent tools, MCP server (API-key URL and OAuth variants), and an **upload widget**
+`libraries/nestjs-libraries/src/chat/`: agent tools and the MCP server (`start.mcp.ts`): `/mcp`, `/mcp/:id`, `/sse/:id`, and OAuth issuers `/mcp-oauth`, `/mcp-oauth-dynamic`
+(dynamic client registration for Claude, Cursor and others) and `/mcp-oauth-chatgpt` (what the ChatGPT app submission points at). Plus an **upload widget**
 for Claude/ChatGPT (`media.widget.controller.ts`, `upload.widget.*`, auth in `upload.widget.auth.middleware.ts`). Ours, not upstream.
 
 ## Frontend conventions

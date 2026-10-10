@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Tracks which Postiz upstream changes SocioBird has decided on. See README.md in this folder.
-# Usage: sync-status.sh [fetch|status|report|conflicts|divergences|record|advance|check]
+# Usage: sync-status.sh [fetch|status|report|conflicts|divergences|inventory|verify|record|advance|check]
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -128,6 +128,8 @@ case "${1:-status}" in
   report) cmd_report ;;
   conflicts) cmd_conflicts ;;
   divergences) cmd_divergences ;;
+  inventory) shift; python3 "$DIR/features.py" inventory "$@" ;;
+  verify) python3 "$DIR/features.py" verify ;;
   record) shift; cmd_record "$@" ;;
   advance) shift; cmd_advance "$@" ;;
   check) cmd_check ;;

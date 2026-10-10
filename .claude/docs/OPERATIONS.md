@@ -71,4 +71,5 @@ To re-check, run on the server: the `docker stats` + `awk` one-liner (convert to
 - Rotate Coolify tokens and test-account passwords that were pasted into chat.
 - QAT and production share one R2 bucket; test uploads on QAT land in the production bucket.
 - Site FAQ says "New accounts start with a free trial": unverified against billing code.
+- Dead Polotno leftovers: `apps/frontend/src/app/polonto.css` (imported by `global.scss`) and `NEXT_PUBLIC_POLOTNO` in `docker-compose.yaml`. Safe cleanup candidate (needs a frontend build to confirm).
 - The Botsab tutorial video and the "Generate posts" video in the docs are incomplete.

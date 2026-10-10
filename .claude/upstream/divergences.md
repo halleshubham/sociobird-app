@@ -42,10 +42,10 @@ Update this page when you add a new area of divergence. It is curated, not gener
   `upload/r2.uploader.ts`, `upload/upload.factory.ts` (`multipartEnabled`).
 
 ### Channel list behaviour
-- Unsupported providers marked "coming soon" (`add.provider.component.tsx`; commit `da2fe3a` also touched about 20 provider files). Provider files may also carry branding-string edits (inferred).
+- Unsupported providers marked "coming soon" (`add.provider.component.tsx`; 17 provider files differ from upstream only by a `comingSoon = true;` line, plus the `comingSoon` field in `social.integrations.interface.ts`).
   Threads was un-flagged because it works.
 - YouTube title optional when posting to several platforms (`youtube.provider.ts` + frontend + settings DTO, #8).
-- Botsab anti-ban pacing and retries.
+- Botsab group/contact posts are handed to Botsab's campaign runner with fixed pacing (`GROUP_CAMPAIGN_OPTIONS`, #7).
 
 ## Smaller or infra-level differences
 
@@ -57,6 +57,22 @@ Update this page when you add a new area of divergence. It is curated, not gener
 - `CLAUDE.md`, `.claude/` (this tracking), `.gitignore`, `package.json` / `pnpm-lock.yaml` (dependency and lockfile fixes).
 - Translations (`libraries/react-shared-libraries/src/translation/locales/*`) differ from upstream; not analysed in detail.
 
+## Found by reading the code (not in any single feature commit)
+
+| What | Where |
+|---|---|
+| Reddit subreddit search resolves a pasted `r/name` or reddit.com URL | `reddit.provider.ts` (`subredditByName`) |
+| Google Business Profile logs the real API response when no accounts/locations are found | `gmb.provider.ts` |
+| `LinkedIn-Version` header pinned | `linkedin.provider.ts` |
+| MCP/agent tool loading must not block the API from listening | `chat/load.tools.service.ts` |
+| Organization selector tolerates a non-array response | `organization.selector.tsx` |
+| Required Google user-data disclosure in the privacy policy | `(legal)/privacy/page.tsx` |
+| **Database:** the only Prisma model that differs from upstream is `Subscription` (payment-provider fields); everything else is upstream's schema | `schema.prisma` |
+| Farcaster provider and two other files carry build fixes for latent upstream bugs | commit `e2c9d7a` |
+
 ## Removed from upstream
 
 See the `skipped` rows in `ledger.tsv`: Polotno designer, embedded billing, staging-conflicts workflow.
+
+**Known gap:** Polotno is not fully removed. The component files and the npm dependency are gone, but `apps/frontend/src/app/polonto.css` (16.5k lines) is still
+`@use`d by `global.scss` (with a `.editor .polonto *` rule), and `docker-compose.yaml` still sets `NEXT_PUBLIC_POLOTNO`. They are dead weight; `features.tsv` reports them as a warning.

@@ -1,0 +1,5 @@
+upstream_ref	kind	title	status	our_ref	decided_on	notes
+BASE:48490b81	baseline	Everything in Postiz main up to 48490b81 (2026-09-17)	baseline	6cae887	2026-09-17	Merged as a whole into sync/upstream-main, then our stable-v2.10.1-razorpay line merged on top. What we changed or removed afterwards is listed in divergences.md and below.
+feature:polotno-designer	feature	Polotno image designer (launches/polonto*)	skipped	7cfb452	2026-09-17	Unlicensed. Removed from our tree. Do not re-adopt from upstream.
+feature:embedded-billing	feature	Embedded billing component (billing/embedded.billing.tsx)	skipped	eb3b996	2026-09-17	Deleted when the new-signup billing screen broke for Razorpay orgs. Verify before re-adopting; billing is ours (Razorpay).
+feature:staging-conflicts-workflow	feature	GitHub workflow staging-conflicts.yml	skipped	fefec22	2026-09-10	Upstream-branch automation we do not use.

@@ -1,0 +1,44 @@
+feature	ledger_key	origin	expect	check	notes
+razorpay-provider		ours	present	libraries/nestjs-libraries/src/services/payment/providers/razorpay.provider.ts::class RazorpayProvider	Razorpay as a payment provider
+razorpay-first-cycle-discount		ours	present	libraries/nestjs-libraries/src/services/payment/providers/razorpay.provider.ts::New-user signup offer	new-user first-cycle offer, implemented in our provider
+payment-provider-switch		ours	present	libraries/nestjs-libraries/src/services/payment/payment.provider.manager.ts::DEFAULT_WEB_PAYMENT_PROVIDER	env picks the default provider
+inr-usd-pricing		ours	present	libraries/nestjs-libraries/src/database/prisma/subscriptions/pricing.razorpay.ts::month_price	INR and USD price tables
+inr-usd-billing-ui		ours	present	apps/frontend/src/components/billing/first.billing.component.tsx::pricingINR	paywall INR/USD toggle
+lifetime-offer-hidden		ours	present	apps/frontend/src/components/billing/main.billing.component.tsx::// import .*PurchaseLifetimeRazorpay	lifetime purchase is commented out on purpose
+crypto-lifetime-removed		ours	absent	apps/frontend/src/components/billing::nowpayments|crypto	crypto lifetime purchase replaced by Razorpay
+legal-pages		ours	present	apps/frontend/src/app/(app)/(legal)/terms/page.tsx	terms and privacy pages
+privacy-google-user-data		ours	present	apps/frontend/src/app/(app)/(legal)/privacy/page.tsx::Google user data	required Google disclosure
+coming-soon-flag		ours	present	libraries/nestjs-libraries/src/integrations/social/social.integrations.interface.ts::comingSoon	provider flag read by the add-channel UI
+coming-soon-ui		ours	present	apps/frontend/src/components/launches/add.provider.component.tsx::comingSoon	
+threads-live		ours	absent	libraries/nestjs-libraries/src/integrations/social/threads.provider.ts::comingSoon	Threads works, so it must not be flagged
+botsab-provider		ours	present	libraries/nestjs-libraries/src/integrations/social/botsab.provider.ts::class Botsab	WhatsApp gateway provider
+botsab-campaign-pacing		ours	present	libraries/nestjs-libraries/src/integrations/social/botsab.provider.ts::GROUP_CAMPAIGN_OPTIONS	pacing handed to Botsab's campaign runner
+botsab-frontend		ours	present	apps/frontend/src/components/new-launch/providers/botsab/botsab.provider.tsx	
+mcp-upload-widget		ours	present	apps/backend/src/api/routes/media.widget.controller.ts	upload widget for Claude and ChatGPT
+mcp-upload-widget-auth		ours	present	apps/backend/src/services/auth/upload.widget.auth.middleware.ts	
+mcp-tools-nonblocking		ours	present	libraries/nestjs-libraries/src/chat/load.tools.service.ts::Promise.all	tool loading must not block the API from listening
+superuser-public-api		ours	present	apps/backend/src/public-api/routes/v1/public.integrations.controller.ts::SuperAdminGuard	org impersonation and debugging endpoints
+public-multipart-upload		ours	present	apps/backend/src/public-api/routes/v1/public.integrations.controller.ts::upload/:endpoint	
+multipart-size-limit		ours	present	libraries/nestjs-libraries/src/upload/r2.uploader.ts::getMaxSize	limits enforced on completion
+ai-video-kill-switch		ours	present	libraries/nestjs-libraries/src/videos/video.config.ts::AI_VIDEO_GENERATION_ENABLED	
+undici-dispatcher-fix		ours	present	libraries/nestjs-libraries/src/dtos/webhooks/ssrf.safe.dispatcher.ts::undici	
+org-selector-guard		ours	present	apps/frontend/src/components/layout/organization.selector.tsx::Array.isArray	
+reddit-subreddit-url-search		ours	present	libraries/nestjs-libraries/src/integrations/social/reddit.provider.ts::subredditByName	pasted r/name or URL resolves to the subreddit
+gmb-empty-account-logging		ours	present	libraries/nestjs-libraries/src/integrations/social/gmb.provider.ts::no accounts returned	
+youtube-title-optional		ours	present	libraries/nestjs-libraries/src/dtos/posts/providers-settings/youtube.settings.dto.ts::ValidateIf	title validated only when present (#8)
+docs-menu-link		ours	present	apps/frontend/src/components/layout/top.menu.tsx::shackyapps.in/docs/sociobird	
+digest-email-v2		ours	present	apps/orchestrator/src/workflows/digest.email.workflow.v2.ts::digestEmailWorkflowV2	new workflow version; v1 kept
+qat-image-workflow		ours	present	.github/workflows/build-qat-image.yml	manual image build
+linkedin-api-version		ours	present	libraries/nestjs-libraries/src/integrations/social/linkedin.provider.ts::LinkedIn-Version	version header pinned
+post-workflows-latest		upstream	present	apps/orchestrator/src/workflows/post-workflows/post.workflow.v1.1.2.ts	
+autopost-workflow		upstream	present	apps/orchestrator/src/workflows/autopost.workflow.ts	
+media-normalizer		upstream	present	apps/orchestrator/src/workflows/process.media.workflow.ts	
+mcp-server		upstream	present	libraries/nestjs-libraries/src/chat/start.mcp.ts	
+stripe-provider		upstream	present	libraries/nestjs-libraries/src/services/stripe.service.ts::STRIPE_PROVIDER	Stripe lives outside payment/providers/
+revenuecat-provider		upstream	present	libraries/nestjs-libraries/src/services/payment/providers/revenuecat.provider.ts::REVENUECAT_PROVIDER	
+agents-chat-ui		upstream	present	apps/frontend/src/components/agents/agent.chat.tsx	
+polotno-component-removed	feature:polotno-designer	skipped	absent	apps/frontend/src/components/launches/polonto.tsx	component file deleted
+polotno-dependency-removed	feature:polotno-designer	skipped	absent	package.json::"polotno"	npm dependency removed
+polotno-stylesheet-removed	feature:polotno-designer	skipped	absent	apps/frontend/src/app/global.scss::polonto	KNOWN GAP: global.scss still @use's polonto.css (16.5k lines) and styles .editor .polonto; docker-compose.yaml still sets NEXT_PUBLIC_POLOTNO
+embedded-billing-removed	feature:embedded-billing	skipped	absent	apps/frontend/src/components/billing/embedded.billing.tsx	
+staging-conflicts-removed	feature:staging-conflicts-workflow	skipped	absent	.github/workflows/staging-conflicts.yml	

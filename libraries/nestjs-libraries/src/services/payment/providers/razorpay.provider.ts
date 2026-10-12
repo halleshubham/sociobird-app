@@ -600,4 +600,111 @@ export class RazorpayProvider extends PaymentProviderAbstract {
       RAZORPAY_PROVIDER
     );
   }
+
+  // --- admin (the super admin "Manage Billing" panel) -----------------------
+
+  // The panel's "Cancel subscription" button: ends the plan right away.
+  override async cancelSubscription(organizationId: string) {
+    const current = await this._subscriptionService.getSubscription(
+      organizationId
+    );
+    if (!current) {
+      throw new HttpException('No active subscription', 400);
+    }
+
+    // An admin-granted plan has nothing at Razorpay to cancel
+    if (this._subscriptionService.isManualSubscription(current)) {
+      return this._subscriptionService.removeManualSubscription(organizationId);
+    }
+
+    if (current.isLifetime) {
+      throw new HttpException('A lifetime plan cannot be cancelled here', 400);
+    }
+
+    const org = await this._organizationService.getOrgById(organizationId);
+    if (org?.paymentId) {
+      try {
+        await razorpay.subscriptions.cancel(org.paymentId, false);
+      } catch (err) {
+        // Only fine when Razorpay already ended it. Any other failure must not
+        // drop our record while the customer is still being billed.
+        const state = await razorpay.subscriptions
+          .fetch(org.paymentId)
+          .catch(() => null);
+        if (
+          !state ||
+          !['cancelled', 'expired', 'completed'].includes(state.status)
+        ) {
+          throw err;
+        }
+      }
+    }
+
+    await this._subscriptionService.deleteSubscriptionByOrgId(
+      organizationId,
+      RAZORPAY_PROVIDER
+    );
+    return { cancelled: true };
+  }
+
+  // Paid invoices of the org's Razorpay subscription, in the shape the panel lists.
+  override async getCharges(organizationId: string) {
+    const [org, current] = await Promise.all([
+      this._organizationService.getOrgById(organizationId),
+      this._subscriptionService.getSubscription(organizationId),
+    ]);
+
+    // Nothing was ever billed for an admin-granted plan
+    if (
+      !org?.paymentId ||
+      !current ||
+      this._subscriptionService.isManualSubscription(current)
+    ) {
+      return [];
+    }
+
+    const invoices = await razorpay.invoices.all({
+      subscription_id: org.paymentId,
+      count: 100,
+    } as any);
+
+    return (invoices.items || [])
+      .filter((invoice: any) => invoice.status === 'paid')
+      .map((invoice: any) => ({
+        id: invoice.payment_id || invoice.id,
+        amount: invoice.amount_paid ?? invoice.amount,
+        currency: String(invoice.currency || 'INR').toLowerCase(),
+        created: invoice.paid_at || invoice.created_at,
+        status: 'succeeded',
+        refunded: false,
+        amount_refunded: 0,
+        description: invoice.description || `Invoice ${invoice.id}`,
+        receipt_url: invoice.short_url || null,
+        invoice_pdf: null,
+      }));
+  }
+
+  override async refundCharges(organizationId: string, chargeIds: string[]) {
+    throw new HttpException(
+      'Razorpay payments are refunded from the Razorpay dashboard',
+      400
+    );
+  }
+
+  // Coupons are a Stripe feature; the panel shows the plan and hides the form.
+  override async getCouponInfo(organizationId: string) {
+    const current = await this._subscriptionService.getSubscription(
+      organizationId
+    );
+    return {
+      tier: current?.subscriptionTier || null,
+      period: current?.period || null,
+      isLifetime: !!current?.isLifetime,
+      monthlyPrice: 0,
+      planPrice: 0,
+      nextPayment: null,
+      coupons: [],
+      supported: false,
+    };
+  }
 }

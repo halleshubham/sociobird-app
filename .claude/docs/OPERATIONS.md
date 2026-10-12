@@ -72,8 +72,12 @@ POST /api/billing/remove-subscription                               # only remov
   Razorpay/Stripe/RevenueCat or lifetime subscription (it used to overwrite it and orphan the paid one).
 - **`remove-subscription`** removes a manual subscription only: downgrades to FREE (disables all channels, disables non-admin team members, terminates autopost workflows),
   deletes the row and clears the placeholder `paymentId`. A real subscription is refused with a message to cancel it at its provider.
-- **`POST /billing/cancel-subscription` and `charges`, `refund-charges`, `coupon-info`** are **Stripe-only**; on Razorpay they answer 400 "This action is not supported on web".
-  Do not use them for manual subscriptions.
+- **In the app:** impersonate the user, then use the red **Manage Billing** modal (lists charges, **Cancel subscription**, Apply coupon) and the **ADD ... SUBSCRIPTION** dropdown.
+  Both show the server's reason in a toast when a request is refused (they used to reload silently).
+- **`POST /billing/cancel-subscription`** (the modal's Cancel button) ends the plan immediately: a manual subscription is removed (same as `remove-subscription`);
+  a real Razorpay subscription is cancelled at Razorpay (if Razorpay fails and the subscription is still live, nothing is deleted) and the row removed.
+  Lifetime plans are refused. **`GET /billing/charges`** lists the paid Razorpay invoices (empty for manual plans). **`refund-charges`** is not available on Razorpay (use the
+  Razorpay dashboard) and **`coupon-info`** answers `supported: false`. On Stripe orgs these routes behave as before.
 - **After removal, adding or upgrading again works** (`add-subscription` again, or the user pays through checkout), but know what is *not* restored:
   channels disabled by the downgrade stay disabled (re-enable them in the app; the plan's channel limit applies), and autopost items need to be switched on again.
   Team members are re-enabled automatically when going back to a team tier.

@@ -12,6 +12,9 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
   (validates the tier, refuses to overwrite a real Razorpay/Stripe/lifetime subscription, new rows get a `manual_` identifier, a silent no-op now returns 400).
   Found that Razorpay's `org.paymentId` is the Razorpay subscription id, which the old `add-subscription` overwrote. See OPERATIONS.md, "Manual subscriptions".
   A super-admin token was pasted into chat; it does not expire, so `JWT_SECRET` needs rotating.
+- **Manage Billing modal on Razorpay orgs:** its `charges`, `cancel-subscription` and `coupon-info` calls hit Stripe-only code and failed. Implemented them in `RazorpayProvider`
+  (cancel, paid-invoice charges, `supported:false` coupons, refunds point to the Razorpay dashboard) and made `impersonate.tsx` show server errors instead of reloading silently.
+  The Razorpay invoice listing and the real-subscription cancel are from reading the SDK usage, not exercised against a live Razorpay subscription.
 
 ## 2026-10-10
 

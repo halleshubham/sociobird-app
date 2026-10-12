@@ -45,3 +45,6 @@ staging-conflicts-removed	feature:staging-conflicts-workflow	skipped	absent	.git
 manual-subscription-removal		ours	present	apps/backend/src/api/routes/billing.controller.ts::remove-subscription	super-admin removal of manual subscriptions
 manual-subscription-service		ours	present	libraries/nestjs-libraries/src/database/prisma/subscriptions/subscription.service.ts::removeManualSubscription	
 add-subscription-guard		ours	present	libraries/nestjs-libraries/src/database/prisma/subscriptions/subscription.service.ts::change it there instead of adding a manual one	refuses to overwrite a real provider subscription
+razorpay-admin-cancel		ours	present	libraries/nestjs-libraries/src/services/payment/providers/razorpay.provider.ts::override async cancelSubscription	admin Cancel subscription on Razorpay orgs
+razorpay-admin-charges		ours	present	libraries/nestjs-libraries/src/services/payment/providers/razorpay.provider.ts::razorpay.invoices.all	admin charges list
+admin-panel-shows-errors		ours	present	apps/frontend/src/components/layout/impersonate.tsx::errorMessage	Manage Billing and Add subscription surface server errors

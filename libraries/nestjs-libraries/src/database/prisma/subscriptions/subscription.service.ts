@@ -359,7 +359,7 @@ export class SubscriptionService {
   // Subscriptions an admin granted by hand (addSubscription): nothing is billed for them.
   // New ones carry a `manual_` identifier; older ones got a bare 5 character id. Real
   // provider ids (sub_...) never look like either, and lifetime plans are never manual.
-  private isManualSubscription(subscription: {
+  isManualSubscription(subscription: {
     identifier: string | null;
     isLifetime: boolean;
   }) {

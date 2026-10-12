@@ -30,10 +30,15 @@ interface Charge {
   invoice_pdf: string | null;
 }
 
+// The server's reason for a refused request, for the toast
+const errorMessage = async (response: Response, fallback: string) =>
+  (await response.json().catch(() => ({}))).message || fallback;
+
 const useCharges = () => {
   const fetch = useFetch();
   return useSWR<Charge[]>('/billing/charges', async () => {
-    return (await fetch('/billing/charges')).json();
+    const response = await fetch('/billing/charges');
+    return response.ok ? response.json() : [];
   }, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
@@ -331,6 +336,7 @@ const ChargesModal: FC<{ close: () => void }> = ({ close }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [refunding, setRefunding] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const toast = useToaster();
 
   const toggleCharge = useCallback((chargeId: string) => {
     setSelected((prev) => {
@@ -370,10 +376,20 @@ const ChargesModal: FC<{ close: () => void }> = ({ close }) => {
     }
     setRefunding(true);
     try {
-      await fetch('/billing/refund-charges', {
+      const response = await fetch('/billing/refund-charges', {
         method: 'POST',
         body: JSON.stringify({ chargeIds: Array.from(selected) }),
       });
+      if (!response.ok) {
+        toast.show(
+          await errorMessage(
+            response,
+            t('refund_failed', 'Could not refund the charges')
+          ),
+          'warning'
+        );
+        return;
+      }
       setSelected(new Set());
       await mutate();
     } finally {
@@ -397,9 +413,20 @@ const ChargesModal: FC<{ close: () => void }> = ({ close }) => {
     }
     setCancelling(true);
     try {
-      await fetch('/billing/cancel-subscription', {
+      const response = await fetch('/billing/cancel-subscription', {
         method: 'POST',
       });
+      if (!response.ok) {
+        toast.show(
+          await errorMessage(
+            response,
+            t('cancel_subscription_failed', 'Could not cancel the subscription')
+          ),
+          'warning'
+        );
+        setCancelling(false);
+        return;
+      }
       close();
       window.location.reload();
     } catch {
@@ -563,6 +590,7 @@ const ManageBilling = () => {
 export const Subscription = () => {
   const fetch = useFetch();
   const t = useT();
+  const toast = useToaster();
 
   const addSubscription: ChangeEventHandler<HTMLSelectElement> = useCallback(
     async (e) => {
@@ -573,12 +601,22 @@ export const Subscription = () => {
           'Add'
         )
       ) {
-        await fetch('/billing/add-subscription', {
+        const response = await fetch('/billing/add-subscription', {
           method: 'POST',
           body: JSON.stringify({
             subscription: value,
           }),
         });
+        if (!response.ok) {
+          toast.show(
+            await errorMessage(
+              response,
+              t('add_subscription_failed', 'Could not add the subscription')
+            ),
+            'warning'
+          );
+          return;
+        }
         window.location.reload();
       }
     },

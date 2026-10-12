@@ -7,6 +7,18 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ## 2026-10-12
 
+- **Backend sometimes never started (fixed):** on a fresh container the backend printed its `pnpm start` line and then nothing, so every `/api` call was a 502 (PM2 still said "online").
+  Seen on `v1.0.11` (prod and QAT) and on a restart of `v1.0.12` on production. Temporary `[startup]` tracing on QAT showed the last module before the freeze was `node-abi`, pulled in by
+  `@sentry-internal/node-cpu-profiler` (`@sentry/profiling-node`). `libraries/nestjs-libraries/src/sentry/initialize.sentry.ts` imported it at the top of the file, so its native addon loaded on every start of the
+  backend and orchestrator even though neither has a Sentry DSN, and on some starts that load never returns (main thread blocked: no timers, no logs). The import now happens inside `initializeSentry`, after the DSN check.
+  QAT: 9 starts in a row reached `listening` (about 16 to 19 s, most of it loading ~12,000 modules), none hung. `v1.0.10` and `v1.0.12` differ only by the Razorpay admin methods, so the hang was never the code of #18.
+- **`GET /posts/find-slot` hung (504) for orgs with no enabled channels:** `findFreeDateTimeRecursive` walks forward one day at a time over the org's posting times, and with no enabled channel there are none, so it never ended
+  (each call also kept querying the database after Cloudflare gave up). `PostsService.findFreeDateTime` now returns the next full hour when there are no posting times. Found when a super admin impersonated an org whose channels had been
+  disabled by removing its subscription (removing a plan drops the org to FREE, which disables every channel, and adding a plan back does not re-enable them: enable them from the channel menu).
+- **Incident, QAT:** the QAT Postgres container (`postiz-v2-db` on the ShackyApps.in server) crash-looped with `could not write lock file "postmaster.pid": No space left on device`; the root disk was 100% full.
+  The QAT app then died at its Prisma `db push` (`P1001`). SM-L4 (production) was at 11%. Check `df -h /` first when a QAT app 502s. Coolify's API has settings but no "run cleanup now" call for Docker cleanup.
+- **Release lesson:** a deploy is not verified by the boot markers alone, the orchestrator prints "Starting Nest application" too. Request `/api/user/self` (expect 401) and look for the backend's own `Mapped {` lines.
+  A restart or redeploy of an app on a host that just ran Docker cleanup re-pulls the image (about 7 minutes).
 - **Manual subscriptions:** investigated a failing `POST /billing/cancel-subscription` while impersonating. It is not an impersonation problem: that route is Stripe-only and production uses
   Razorpay (`This action is not supported on web`). Added `POST /billing/remove-subscription` (super admin, manual subscriptions only), and hardened `add-subscription`
   (validates the tier, refuses to overwrite a real Razorpay/Stripe/lifetime subscription, new rows get a `manual_` identifier, a silent no-op now returns 400).

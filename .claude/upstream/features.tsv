@@ -42,3 +42,6 @@ polotno-dependency-removed	feature:polotno-designer	skipped	absent	package.json:
 polotno-stylesheet-removed	feature:polotno-designer	skipped	absent	apps/frontend/src/app/global.scss::polonto	KNOWN GAP: global.scss still @use's polonto.css (16.5k lines) and styles .editor .polonto; docker-compose.yaml still sets NEXT_PUBLIC_POLOTNO
 embedded-billing-removed	feature:embedded-billing	skipped	absent	apps/frontend/src/components/billing/embedded.billing.tsx	
 staging-conflicts-removed	feature:staging-conflicts-workflow	skipped	absent	.github/workflows/staging-conflicts.yml	
+manual-subscription-removal		ours	present	apps/backend/src/api/routes/billing.controller.ts::remove-subscription	super-admin removal of manual subscriptions
+manual-subscription-service		ours	present	libraries/nestjs-libraries/src/database/prisma/subscriptions/subscription.service.ts::removeManualSubscription	
+add-subscription-guard		ours	present	libraries/nestjs-libraries/src/database/prisma/subscriptions/subscription.service.ts::change it there instead of adding a manual one	refuses to overwrite a real provider subscription

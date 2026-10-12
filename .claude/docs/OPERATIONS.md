@@ -57,6 +57,30 @@ To re-check, run on the server: the `docker stats` + `awk` one-liner (convert to
   hits `/health/status` on 3002, Coolify health check type `cmd`.
 - **Standing advice:** deploy to QAT first, watch production boot logs for 3 minutes, re-check at 5 minutes, keep the previous tag ready.
 
+## Manual subscriptions (super admin)
+
+Use these to grant, change or take away a plan by hand, with no payment. The super admin impersonates the user (or sends the `impersonate` cookie/header);
+both routes act on the impersonated user's organization. Bodies are JSON, cookie `auth` is the super admin's login.
+
+```
+POST /api/billing/add-subscription     {"subscription": "TEAM"}     # STANDARD (Solo) | TEAM | PRO (Agency) | ULTIMATE (Scale)
+POST /api/billing/remove-subscription                               # only removes a manual subscription
+```
+
+- **`add-subscription`** is database-only: it sets the tier, adjusts channels/team members, and writes a subscription row with a `manual_...` identifier, MONTHLY, no expiry.
+  Calling it again on an org that has a manual subscription **changes the tier** (upgrade or downgrade). It **refuses** an unknown tier and refuses an org that has a real
+  Razorpay/Stripe/RevenueCat or lifetime subscription (it used to overwrite it and orphan the paid one).
+- **`remove-subscription`** removes a manual subscription only: downgrades to FREE (disables all channels, disables non-admin team members, terminates autopost workflows),
+  deletes the row and clears the placeholder `paymentId`. A real subscription is refused with a message to cancel it at its provider.
+- **`POST /billing/cancel-subscription` and `charges`, `refund-charges`, `coupon-info`** are **Stripe-only**; on Razorpay they answer 400 "This action is not supported on web".
+  Do not use them for manual subscriptions.
+- **After removal, adding or upgrading again works** (`add-subscription` again, or the user pays through checkout), but know what is *not* restored:
+  channels disabled by the downgrade stay disabled (re-enable them in the app; the plan's channel limit applies), and autopost items need to be switched on again.
+  Team members are re-enabled automatically when going back to a team tier.
+- A manual subscription has no Razorpay subscription behind it, so the user's own "cancel" in billing fails (Razorpay is asked to cancel an id it does not know).
+  Remove it with `remove-subscription`.
+- Never paste a `curl` with cookies into chat: the `auth` token is a super-admin credential that does not expire.
+
 ## Runbook: "posts did not publish"
 
 1. Production app logs: is there `Starting Nest application`, `Orchestrator health check listening`, and 34 `RUNNING` workers incl. `main`? If not, the orchestrator is down: roll back.

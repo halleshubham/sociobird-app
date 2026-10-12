@@ -5,6 +5,14 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ---
 
+## 2026-10-12
+
+- **Manual subscriptions:** investigated a failing `POST /billing/cancel-subscription` while impersonating. It is not an impersonation problem: that route is Stripe-only and production uses
+  Razorpay (`This action is not supported on web`). Added `POST /billing/remove-subscription` (super admin, manual subscriptions only), and hardened `add-subscription`
+  (validates the tier, refuses to overwrite a real Razorpay/Stripe/lifetime subscription, new rows get a `manual_` identifier, a silent no-op now returns 400).
+  Found that Razorpay's `org.paymentId` is the Razorpay subscription id, which the old `add-subscription` overwrote. See OPERATIONS.md, "Manual subscriptions".
+  A super-admin token was pasted into chat; it does not expire, so `JWT_SECRET` needs rotating.
+
 ## 2026-10-10
 
 - **Developer docs and upstream-sync tracker** added under `.claude/` (this folder and `.claude/upstream/`). Baseline of the

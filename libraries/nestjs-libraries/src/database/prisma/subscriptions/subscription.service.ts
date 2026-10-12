@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { SubscriptionRepository } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.repository';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
@@ -356,24 +356,88 @@ export class SubscriptionService {
     };
   }
 
+  // Subscriptions an admin granted by hand (addSubscription): nothing is billed for them.
+  // New ones carry a `manual_` identifier; older ones got a bare 5 character id. Real
+  // provider ids (sub_...) never look like either, and lifetime plans are never manual.
+  private isManualSubscription(subscription: {
+    identifier: string | null;
+    isLifetime: boolean;
+  }) {
+    return (
+      !subscription.isLifetime &&
+      /^(manual_.+|[A-Za-z0-9]{5})$/.test(subscription.identifier || '')
+    );
+  }
+
   async addSubscription(
     orgId: string,
     userId: string,
-    subscription: any,
+    subscription: string,
     provider: string
   ) {
+    const tiers = ['STANDARD', 'TEAM', 'PRO', 'ULTIMATE'] as const;
+    const tier = tiers.find((f) => f === subscription);
+    if (!tier) {
+      throw new HttpException(
+        `Unknown subscription tier, use one of ${tiers.join(', ')}`,
+        400
+      );
+    }
+
+    // A paid subscription is owned by its payment provider: replacing it here would
+    // orphan the real one (and org.paymentId, which Razorpay uses as the subscription id).
+    const current = await this._subscriptionRepository.getSubscriptionByOrgId(
+      orgId
+    );
+    if (current && !this.isManualSubscription(current)) {
+      throw new HttpException(
+        `This organization has a ${current.provider} subscription (${current.subscriptionTier}), change it there instead of adding a manual one`,
+        400
+      );
+    }
+
     await this._subscriptionRepository.setCustomerId(orgId, userId);
-    return this.createOrUpdateSubscription(
+    const skipped = await this.createOrUpdateSubscription(
       provider,
       false,
-      makeId(5),
+      `manual_${makeId(10)}`,
       userId,
-      pricing[subscription].channel!,
-      subscription,
+      pricing[tier].channel!,
+      tier,
       'MONTHLY',
       null,
       undefined,
       orgId
     );
+
+    // createOrUpdateSubscription answers with {} when it declined to change anything
+    if (skipped) {
+      throw new HttpException(
+        'The subscription was not changed, it is managed by another payment provider',
+        400
+      );
+    }
+  }
+
+  async removeManualSubscription(orgId: string) {
+    const current = await this._subscriptionRepository.getSubscriptionByOrgId(
+      orgId
+    );
+    if (!current) {
+      throw new HttpException('This organization has no subscription', 400);
+    }
+
+    if (!this.isManualSubscription(current)) {
+      throw new HttpException(
+        `This subscription is billed through ${current.provider}, cancel it there instead`,
+        400
+      );
+    }
+
+    await this.deleteSubscriptionByOrgId(orgId, current.provider);
+    // addSubscription parks a placeholder in org.paymentId; clear it so a later
+    // real checkout starts from a clean slate
+    await this._subscriptionRepository.setCustomerId(orgId, null);
+    return { removed: true, tier: current.subscriptionTier };
   }
 }

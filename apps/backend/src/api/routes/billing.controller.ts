@@ -308,6 +308,18 @@ export class BillingController {
     );
   }
 
+  @Post('/remove-subscription')
+  async removeSubscription(
+    @GetUserFromRequest() user: User,
+    @GetOrgFromRequest() org: Organization
+  ) {
+    if (!user.isSuperAdmin) {
+      throw new HttpException('Unauthorized', 400);
+    }
+
+    return this._subscriptionService.removeManualSubscription(org.id);
+  }
+
   @Post('/lifetime/razorpay/order')
   async createLifetimeRazorpayOrder(@GetOrgFromRequest() org: Organization) {
     return this._razorpayProvider.createLifetimeOrder(org.id);

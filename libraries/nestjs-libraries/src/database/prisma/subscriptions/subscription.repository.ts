@@ -293,7 +293,7 @@ export class SubscriptionRepository {
     }
   }
 
-  setCustomerId(orgId: string, customerId: string) {
+  setCustomerId(orgId: string, customerId: string | null) {
     return this._organization.model.organization.update({
       where: {
         id: orgId,

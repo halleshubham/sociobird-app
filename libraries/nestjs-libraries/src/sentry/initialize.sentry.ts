@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/nestjs';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { capitalize } from 'lodash';
 
 export const setSentryUserContext = (params: {
@@ -31,6 +30,10 @@ export const initializeSentry = (appName: string, allowLogs = false) => {
   }
 
   try {
+    // Loaded here and not at the top of the file: importing the profiler loads a native addon,
+    // and that load hangs the process on some starts, even when Sentry is not configured.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { nodeProfilingIntegration } = require('@sentry/profiling-node');
     Sentry.init({
       initialScope: {
         tags: {

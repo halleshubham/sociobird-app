@@ -1303,6 +1303,15 @@ export class PostsService {
       orgId,
       integrationId
     );
+    // No channel means no posting times to search, and the recursion below
+    // would walk forward one day at a time forever
+    if (!findTimes.length) {
+      return dayjs
+        .utc()
+        .add(1, 'hour')
+        .startOf('hour')
+        .format('YYYY-MM-DDTHH:mm:00');
+    }
     return this.findFreeDateTimeRecursive(
       orgId,
       findTimes,

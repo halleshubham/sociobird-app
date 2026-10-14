@@ -89,3 +89,8 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 - Removed the **unlicensed Polotno designer** (files `launches/polonto*`). Do not re-adopt it from upstream.
 - Added public Terms of Service and Privacy pages, `AI_VIDEO_GENERATION_ENABLED` kill switch, "coming soon" flags for unsupported providers,
   commented out the lifetime purchase offer on the billing page, new logo.
+
+## 2026-10-14 - Settings tabs rebrand
+
+- Replaced user-visible "Postiz" with "SocioBird" in the Settings tabs (Webhooks, Developers/Public API, OAuth app, Approved Apps) and in all locale `translation.json` values. Translation keys are unchanged.
+- Deliberately kept: the `postiz` CLI/npm package name and `POSTIZ_API_KEY` (real upstream identifiers), upstream docs links, and the GitHub open-source link.

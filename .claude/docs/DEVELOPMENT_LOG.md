@@ -5,6 +5,14 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ---
 
+## 2026-10-18
+
+- **Upstream UI port (branch `upstream-ui-port`, not deployed):** new creation modal, group schedules (per-channel dates), new date picker, tags, media picker, calendar line and responsive fixes from Postiz
+  (`a194e3f`, `c3743d9`, `48aa7e2`, PR#2217, `47175b5`, `e756fa5`, `9fedac4`). `c3743d9` is a merge of upstream main, so its frontend rides along with the calendar/menu/tags files:
+  open-post link, channel filter, rename channel, edit group name, curated post errors. Their small backends were ported too (additive schema: `Post.batchId`, `Integration.customName`;
+  `GET /posts/:id/release-url` without the TikTok resolve step). The editor needs upstream's inline-image plumbing (store/high order provider), but the X/WordPress/Listmonk flags stay off.
+  Not ported: billing pages, top menu moves, settings moves, Stripe re-enable notice (`ChannelsAfterPayment`), Facebook video title, TikTok resolve. `media.component.tsx` keeps Polotno removed and the AI video switch.
+
 ## 2026-10-12
 
 - **Backend sometimes never started (fixed):** on a fresh container the backend printed its `pnpm start` line and then nothing, so every `/api` call was a 502 (PM2 still said "online").

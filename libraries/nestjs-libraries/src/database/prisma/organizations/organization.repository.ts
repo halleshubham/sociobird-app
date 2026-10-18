@@ -1,6 +1,6 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { Role, ShortLinkPreference, SubscriptionTier } from '@prisma/client';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
@@ -417,6 +417,10 @@ export class OrganizationRepository {
     });
 
     if (checkIfInviteExists) {
+      Logger.warn(
+        `addUserToOrg: invite ${id} already consumed (user=${userId} org=${orgId})`,
+        OrganizationRepository.name
+      );
       return false;
     }
 
@@ -435,6 +439,10 @@ export class OrganizationRepository {
       checkForSubscription?.subscription?.subscriptionTier ===
         SubscriptionTier.STANDARD
     ) {
+      Logger.warn(
+        `addUserToOrg: org=${orgId} is on STANDARD, seat limit blocks invite join (user=${userId})`,
+        OrganizationRepository.name
+      );
       return false;
     }
 

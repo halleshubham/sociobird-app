@@ -113,6 +113,40 @@ export class InstagramProvider
         value: 'An unknown error occurred, please try again later',
       };
     }
+    // OAuth token-exchange errors (standalone Instagram login): without these
+    // every failed connect collapses into "Unknown Error"
+    if (
+      body.indexOf('Invalid authorization code') > -1 ||
+      body.indexOf('Matching code was not found') > -1
+    ) {
+      return {
+        type: 'bad-body' as const,
+        value:
+          'The Instagram authorization code expired or was already used, please restart the connection and complete it without going back in the browser',
+      };
+    }
+    if (body.toLowerCase().indexOf('redirect_uri') > -1) {
+      return {
+        type: 'bad-body' as const,
+        value:
+          "Instagram OAuth redirect URI mismatch, the callback URL must be listed exactly in your Meta app's OAuth redirect URIs",
+      };
+    }
+    if (
+      body.indexOf('Invalid platform app') > -1 ||
+      body.indexOf('Invalid client_id') > -1
+    ) {
+      return {
+        type: 'bad-body' as const,
+        value: 'Instagram App ID is invalid, check INSTAGRAM_APP_ID',
+      };
+    }
+    if (body.indexOf('Invalid client_secret') > -1) {
+      return {
+        type: 'bad-body' as const,
+        value: 'Instagram App Secret is invalid, check INSTAGRAM_APP_SECRET',
+      };
+    }
     if (body.indexOf('2207081') > -1) {
       return {
         type: 'bad-body' as const,

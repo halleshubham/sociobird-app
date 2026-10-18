@@ -48,6 +48,21 @@ export const initializeSentry = (appName: string, allowLogs = false) => {
       },
       environment: process.env.NODE_ENV || 'development',
       dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+      beforeSend(event, hint) {
+        // A client closing the connection mid-request is not an app bug
+        const original = hint?.originalException as
+          | { type?: string; code?: string }
+          | undefined;
+        const isAbortedRequest =
+          original?.type === 'request.aborted' ||
+          original?.code === 'ECONNABORTED' ||
+          event.exception?.values?.some(
+            (v) =>
+              v.type === 'BadRequestError' &&
+              /request aborted/i.test(v.value ?? '')
+          );
+        return isAbortedRequest ? null : event;
+      },
       spotlight: process.env.SENTRY_SPOTLIGHT === '1',
       integrations: [
         // Add our Profiling integration

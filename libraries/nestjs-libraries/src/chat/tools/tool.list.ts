@@ -13,6 +13,7 @@ import { PostsListTool } from '@gitroom/nestjs-libraries/chat/tools/posts.list.t
 import { PostSettingsTool } from '@gitroom/nestjs-libraries/chat/tools/post.settings.tool';
 import { UploadWidgetTool } from '@gitroom/nestjs-libraries/chat/tools/upload.widget.tool';
 import { UploadWidgetTicketTool } from '@gitroom/nestjs-libraries/chat/tools/upload.widget.ticket.tool';
+import { MediaListTool } from '@gitroom/nestjs-libraries/chat/tools/media.list.tool';
 import { UploadWidgetStatusTool } from '@gitroom/nestjs-libraries/chat/tools/upload.widget.status.tool';
 
 export const toolList = [
@@ -29,6 +30,7 @@ export const toolList = [
   VideoStatusTool,
   GenerateImageTool,
   UploadFromUrlTool,
+  MediaListTool,
   UploadWidgetTool,
   UploadWidgetTicketTool,
   UploadWidgetStatusTool,

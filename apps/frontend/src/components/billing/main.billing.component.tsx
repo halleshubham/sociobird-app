@@ -18,6 +18,7 @@ import {
   NEW_USER_DISCOUNT_PERCENT,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing.razorpay';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
+import { BillingHistory } from '@gitroom/frontend/components/billing/billing.history.component';
 import { useSWRConfig } from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -757,6 +758,7 @@ export const MainBillingComponent: FC<{
           )}
         </div>
       )}
+      {!!subscription?.id && <BillingHistory />}
       <FAQComponent />
       <div className="flex justify-center mt-[20px]">
         <LogoutComponent />

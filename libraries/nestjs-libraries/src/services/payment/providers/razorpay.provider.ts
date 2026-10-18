@@ -17,6 +17,7 @@ import {
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import {
+  PaymentInvoice,
   PaymentPlatform,
   PaymentProvider,
   PaymentProviderAbstract,
@@ -681,6 +682,55 @@ export class RazorpayProvider extends PaymentProviderAbstract {
         description: invoice.description || `Invoice ${invoice.id}`,
         receipt_url: invoice.short_url || null,
         invoice_pdf: null,
+      }));
+  }
+
+  // Billing history: every invoice of the org's Razorpay subscription, in the
+  // provider neutral shape the billing page lists. Razorpay's hosted invoice
+  // page (short_url) is the only view/print link it offers, there is no PDF.
+  override async getInvoices(organizationId: string): Promise<PaymentInvoice[]> {
+    const [org, current] = await Promise.all([
+      this._organizationService.getOrgById(organizationId),
+      this._subscriptionService.getSubscription(organizationId),
+    ]);
+
+    // Nothing was ever billed for an admin-granted plan
+    if (
+      !org?.paymentId ||
+      !current ||
+      this._subscriptionService.isManualSubscription(current)
+    ) {
+      return [];
+    }
+
+    const invoices = await razorpay.invoices.all({
+      subscription_id: org.paymentId,
+      count: 100,
+    } as any);
+
+    return (invoices.items || [])
+      .filter((invoice: any) => invoice.status !== 'draft')
+      .map((invoice: any) => ({
+        id: invoice.id,
+        number: invoice.invoice_number || null,
+        tier: null,
+        period: null,
+        description: invoice.description || null,
+        amount: invoice.amount,
+        currency: String(invoice.currency || 'INR').toLowerCase(),
+        created: invoice.issued_at || invoice.created_at,
+        periodEnd:
+          invoice.billing_end || invoice.issued_at || invoice.created_at,
+        status:
+          invoice.status === 'paid'
+            ? 'paid'
+            : invoice.status === 'cancelled' || invoice.status === 'deleted'
+            ? 'void'
+            : invoice.status === 'expired'
+            ? 'failed'
+            : 'pending',
+        downloadUrl: null,
+        viewUrl: invoice.short_url || null,
       }));
   }
 

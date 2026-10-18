@@ -10,6 +10,7 @@ Start here. These files give a new session the context that is not obvious from 
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | you are about to change code, open a PR, build an image or deploy |
 | [OPERATIONS.md](./OPERATIONS.md) | you touch production/QAT, debug "posts did not publish", or need infra and incident history |
 | [DEVELOPMENT_LOG.md](./DEVELOPMENT_LOG.md) | you want to know what changed recently, and why. Append to it after meaningful work |
+| [../upstream/postmill.md](../upstream/postmill.md) | the user asks about Postmill (`postmill-ai/postmill-app`) or other Postiz forks: what was taken, what are candidates |
 | [../upstream/README.md](../upstream/README.md) | the user asks to "sync with Postiz", "pull upstream features" or "what have we taken from Postiz" |
 
 ## Rules for keeping these docs useful

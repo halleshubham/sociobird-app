@@ -5,6 +5,18 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ---
 
+## 2026-10-18 (upstream sync, Oct 2026)
+
+- **Upstream sync `48490b81..7113c6ce`** (88 changes, all decided in `.claude/upstream/ledger.tsv`; `TRIAGED_THROUGH=7113c6ce`). Adopted: both CVE fixes, new creation modal + group schedules + date picker + tags + calendar line + responsive (schema: nullable `Post.batchId`, `Integration.customName`),
+  Instagram limit mappings, public API `GET /media` / `GET /me`, MCP `mediaListTool`, superadmin include-deleted + reset-credits, provider concurrency increases, `.mov`/`.mp4` interchange on multipart completion, several small fixes.
+  Modified: billing history (invoices) via a provider-neutral `getInvoices`, implemented for Razorpay (hosted invoice link; there is no PDF). Skipped: Stripe billing pages/tracking, HubSpot, clipping, ChatGPT/MCP widget files, menu moves.
+  Deferred: Mastra table mirror (needs Mastra upgrade; today `db push --accept-data-loss` can drop unmirrored Mastra tables), TikTok fixes, inline pictures, versioned autopost/email workflows, 13 unreviewed small commits.
+  Full lists: `.claude/upstream/divergences.md` ("Added by the October 2026 upstream sync"), `ledger.tsv`, `features.tsv`.
+- **Postmill** (`postmill-ai/postmill-app`, another Postiz fork) reviewed: see `.claude/upstream/postmill.md`. Three small fixes taken (invite cookie, Sentry abort noise, Instagram OAuth errors); larger ideas listed as candidates.
+- Porting lessons: cherry-picking merge commits (`-m 1`) of long-lived upstream branches drags in unrelated features (clipping came with media-list), so hand-port or take final file versions;
+  translation JSON conflicts are always safe to resolve as "ours wins + add missing keys" (script in the session, 5 lines of Python); PR#2217 (date picker) and the modal must be ported together.
+- Not verified: the app was not run. Frontend, backend and orchestrator `tsc` show no new errors (only the pre-existing implicit-any ones). Test on QAT: create-post modal, group schedules, date picker, tags, calendar, billing history (Razorpay org), `.mov` upload.
+
 ## 2026-10-18
 
 - **Upstream UI port (branch `upstream-ui-port`, not deployed):** new creation modal, group schedules (per-channel dates), new date picker, tags, media picker, calendar line and responsive fixes from Postiz

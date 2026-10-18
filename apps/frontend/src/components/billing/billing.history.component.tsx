@@ -25,8 +25,8 @@ interface Invoice {
 }
 
 const PAGE_SIZE = 10;
-// invoices under $10 (trial starts, proration leftovers) are left out of the history
-const MIN_AMOUNT = 1000;
+// zero-amount invoices (trial starts) are left out of the history
+const MIN_AMOUNT = 1;
 
 const useInvoices = () => {
   const fetch = useFetch();

@@ -125,7 +125,10 @@ export class InstagramProvider
           'The Instagram authorization code expired or was already used, please restart the connection and complete it without going back in the browser',
       };
     }
-    if (body.toLowerCase().indexOf('redirect_uri') > -1) {
+    if (
+      /redirect_uri/i.test(body) &&
+      /(match|identical|validating)/i.test(body)
+    ) {
       return {
         type: 'bad-body' as const,
         value:
@@ -138,13 +141,15 @@ export class InstagramProvider
     ) {
       return {
         type: 'bad-body' as const,
-        value: 'Instagram App ID is invalid, check INSTAGRAM_APP_ID',
+        value:
+          'Instagram app ID is invalid, check the app credentials configured for this channel',
       };
     }
     if (body.indexOf('Invalid client_secret') > -1) {
       return {
         type: 'bad-body' as const,
-        value: 'Instagram App Secret is invalid, check INSTAGRAM_APP_SECRET',
+        value:
+          'Instagram app secret is invalid, check the app credentials configured for this channel',
       };
     }
     if (body.indexOf('2207081') > -1) {

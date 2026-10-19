@@ -340,7 +340,7 @@ export const TopMenu: FC = () => {
   const { billingEnabled } = useVariables();
   return (
     <>
-      <div className="flex flex-1 flex-col minCustom:gap-[16px] blurMe">
+      <div className="flex flex-1 min-h-0 flex-col minCustom:gap-[8px] custom:gap-[2px] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden blurMe">
         {
           // @ts-ignore
           user?.orgId &&
@@ -373,7 +373,7 @@ export const TopMenu: FC = () => {
               ))
         }
       </div>
-      <div className="flex flex-col minCustom:gap-[20px] custom:gap-[8px] blurMe">
+      <div className="flex shrink-0 flex-col minCustom:gap-[8px] custom:gap-[2px] blurMe">
         {secondMenu
           .filter((f) => {
             if (f.hide) {

@@ -300,6 +300,9 @@ export const MediaBox: FC<{
   const addToUpload = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
+      // picking the same file again fires no change event unless the input is
+      // cleared, so a retry of a file that was cancelled or failed did nothing
+      e.target.value = '';
       const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
       if (totalSize > MAX_UPLOAD_SIZE) {

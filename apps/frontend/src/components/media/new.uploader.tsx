@@ -66,9 +66,7 @@ export function useUppyUploader(props: {
       restrictions: {
         // maxNumberOfFiles: 5,
         // allowedFileTypes: allowedFileTypes.split(','),
-        // same 1 GB (binary) as the page-level check and the server; Uppy's own
-        // limit failed the file silently, nothing is sent and nothing is shown
-        maxFileSize: 1024 * 1024 * 1024,
+        maxFileSize: 1000000000, // Default 1GB, but we'll override with custom validation
       },
     });
 
@@ -214,13 +212,6 @@ export function useUppyUploader(props: {
         quality: 1,
       });
     }
-    // a file Uppy refuses (size, duplicates, ...) never reaches the upload step,
-    // so without this the user sees nothing happen
-    uppy2.on('restriction-failed', (file, error) => {
-      toast.show(error.message, 'warning');
-      setLocked(false);
-      props.onEnd();
-    });
     // Set additional metadata when a file is added
     uppy2.on('file-added', (file) => {
       setLocked(true);

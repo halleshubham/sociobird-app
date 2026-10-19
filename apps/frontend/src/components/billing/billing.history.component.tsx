@@ -192,8 +192,24 @@ export const BillingHistory: FC = () => {
   const columns =
     'grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_88px] gap-x-[16px] items-center px-[16px]';
 
-  if (isLoading || error || !rows.length) {
+  if (isLoading || error) {
     return null;
+  }
+
+  if (!rows.length) {
+    return (
+      <div className="flex flex-col gap-[8px] rounded-[12px] border border-newTableBorder bg-newBgColorInner shadow-previewShadow p-[24px] mobile:p-[16px]">
+        <div className="text-[20px] font-[600]">
+          {t('billing_history', 'Billing History')}
+        </div>
+        <div className="text-textItemBlur">
+          {t(
+            'billing_history_empty',
+            'No invoices yet. Plans granted by an administrator have no invoices.'
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (

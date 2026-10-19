@@ -198,7 +198,7 @@ export const BillingHistory: FC = () => {
 
   if (!rows.length) {
     return (
-      <div className="flex flex-col gap-[8px] rounded-[12px] border border-newTableBorder bg-newBgColorInner shadow-previewShadow p-[24px] mobile:p-[16px]">
+      <div id="billing-history" className="flex flex-col gap-[8px] rounded-[12px] border border-newTableBorder bg-newBgColorInner shadow-previewShadow p-[24px] mobile:p-[16px]">
         <div className="text-[20px] font-[600]">
           {t('billing_history', 'Billing History')}
         </div>
@@ -213,7 +213,7 @@ export const BillingHistory: FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-[20px] rounded-[12px] border border-newTableBorder bg-newBgColorInner shadow-previewShadow p-[24px] mobile:p-[16px]">
+    <div id="billing-history" className="flex flex-col gap-[20px] rounded-[12px] border border-newTableBorder bg-newBgColorInner shadow-previewShadow p-[24px] mobile:p-[16px]">
       <div className="flex items-center gap-[12px] mobile:flex-col mobile:items-stretch">
         <div className="flex-1 text-[20px] font-[600]">
           {t('billing_history', 'Billing History')}

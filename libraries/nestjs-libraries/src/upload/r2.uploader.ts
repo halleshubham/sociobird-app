@@ -131,8 +131,9 @@ export async function createMultipartUpload(req: Request, res: Response) {
       Bucket: CLOUDFLARE_BUCKETNAME,
       Key: `${randomFilename}`,
       ContentType: safeContentType,
-      // optional: the web uploader no longer hashes the file before uploading
-      ...(fileHash ? { Metadata: { 'x-amz-meta-file-hash': fileHash } } : {}),
+      Metadata: {
+        'x-amz-meta-file-hash': fileHash,
+      },
     };
 
     const command = new CreateMultipartUploadCommand({ ...params });

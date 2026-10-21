@@ -467,22 +467,39 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       setHeartbeatDetails(
         `youtube: read media ${start}-${end} ${stripQuery(path)}`
       );
-      const response = await fetch(path, {
-        headers: {
-          Range: `bytes=${start}-${end}`,
-          'accept-encoding': 'identity',
-        },
-        dispatcher: getSsrfSafeDispatcher(),
-      } as any);
+      // a store that is briefly rate limited or restarting answers once with
+      // something else than 206, so retry a few times before giving up
+      let response: Response | undefined;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        response = await fetch(path, {
+          headers: {
+            Range: `bytes=${start}-${end}`,
+            'accept-encoding': 'identity',
+          },
+          dispatcher: getSsrfSafeDispatcher(),
+        } as any);
+
+        if (response.status === 206) {
+          break;
+        }
+
+        // free the connection of a body we will not read
+        await response.body?.cancel().catch(() => undefined);
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+        }
+      }
 
       // A store that ignores Range (200 with the full file) or answers with an
       // error page would corrupt the upload at this offset.
-      if (response.status !== 206) {
+      if (response!.status !== 206) {
         throw new BadBody(
           this.identifier,
           '{}',
           '{}',
-          'The media storage did not return the requested byte range, please try again'
+          `The media storage did not return the requested byte range (HTTP ${
+            response!.status
+          }), please try again`
         );
       }
 

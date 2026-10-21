@@ -104,6 +104,21 @@ export class IntegrationRepository {
     });
   }
 
+  updateCustomName(org: string, id: string, name: string) {
+    return this._integration.model.integration.update({
+      select: {
+        id: true,
+      },
+      where: {
+        id,
+        organizationId: org,
+      },
+      data: {
+        customName: name.trim() || null,
+      },
+    });
+  }
+
   async setTimes(org: string, id: string, times: IntegrationTimeDto) {
     return this._integration.model.integration.update({
       select: {
@@ -539,6 +554,28 @@ export class IntegrationRepository {
     });
   }
 
+  getCustomerByName(orgId: string, name: string) {
+    return this._customers.model.customer.findFirst({
+      where: {
+        orgId,
+        name,
+        deletedAt: null,
+      },
+    });
+  }
+
+  updateCustomerName(orgId: string, id: string, name: string) {
+    return this._customers.model.customer.update({
+      where: {
+        id,
+        orgId,
+      },
+      data: {
+        name,
+      },
+    });
+  }
+
   customers(orgId: string) {
     return this._customers.model.customer.findMany({
       where: {
@@ -564,7 +601,7 @@ export class IntegrationRepository {
     org: string,
     state: 'PUBLISHED' | 'ERROR',
     field: 'publishDate' | 'updatedAt',
-    topLevelOnly: boolean,
+    options: { topLevelOnly: boolean; includeDeleted: boolean },
     groups: { integrationId: string; date: Date | null }[]
   ) {
     const matches = groups.filter((group) => group.date);
@@ -577,8 +614,8 @@ export class IntegrationRepository {
       where: {
         organizationId: org,
         state,
-        deletedAt: null,
-        ...(topLevelOnly ? { parentPostId: null } : {}),
+        ...(options.includeDeleted ? {} : { deletedAt: null }),
+        ...(options.topLevelOnly ? { parentPostId: null } : {}),
         OR: matches.map(
           (group) =>
             ({
@@ -613,7 +650,7 @@ export class IntegrationRepository {
     return byIntegration;
   }
 
-  async getChannelHealth(org: string) {
+  async getChannelHealth(org: string, includeDeleted = false) {
     const [integrations, lastPublished, lastErrored] = await Promise.all([
       this._integration.model.integration.findMany({
         where: {
@@ -648,7 +685,7 @@ export class IntegrationRepository {
         where: {
           organizationId: org,
           state: 'PUBLISHED',
-          deletedAt: null,
+          ...(includeDeleted ? {} : { deletedAt: null }),
           parentPostId: null,
         },
         _max: { publishDate: true },
@@ -658,7 +695,7 @@ export class IntegrationRepository {
         where: {
           organizationId: org,
           state: 'ERROR',
-          deletedAt: null,
+          ...(includeDeleted ? {} : { deletedAt: null }),
         },
         _max: { updatedAt: true },
       }),
@@ -669,7 +706,7 @@ export class IntegrationRepository {
         org,
         'PUBLISHED',
         'publishDate',
-        true,
+        { topLevelOnly: true, includeDeleted },
         lastPublished.map((group) => ({
           integrationId: group.integrationId,
           date: group._max.publishDate,
@@ -679,7 +716,7 @@ export class IntegrationRepository {
         org,
         'ERROR',
         'updatedAt',
-        false,
+        { topLevelOnly: false, includeDeleted },
         lastErrored.map((group) => ({
           integrationId: group.integrationId,
           date: group._max.updatedAt,

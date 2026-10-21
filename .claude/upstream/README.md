@@ -4,6 +4,8 @@ SocioBird is a fork of `gitroomhq/postiz-app`. We do **not** want every upstream
 lines up with upstream's (we merged once, then diverged). So we do not use commit history to answer "what is synced".
 We keep an explicit record instead.
 
+> Other Postiz forks (for ideas and cross-checking fixes): see [`postmill.md`](postmill.md) for what was reviewed and taken from `postmill-ai/postmill-app`.
+
 ## The three pieces
 
 | File | Role |

@@ -40,6 +40,8 @@ export interface ContinueProviderConfig<TItem, TSelection> {
   renderItem: (item: TItem, isSelected: boolean) => ReactNode;
   isSelected: (item: TItem, selection: TSelection | null) => boolean;
   getItemId: (item: TItem) => string;
+  // what the filter box matches on; defaults to the item's name or username
+  getItemName?: (item: TItem) => string;
 }
 
 export function withContinueProvider<TItem, TSelection>(
@@ -56,6 +58,8 @@ export function withContinueProvider<TItem, TSelection>(
     renderItem,
     isSelected,
     getItemId,
+    getItemName = (item: TItem) =>
+      (item as any)?.name || (item as any)?.username || '',
   } = config;
 
   return function ContinueProviderComponent(props: ContinueProviderProps) {
@@ -63,6 +67,7 @@ export function withContinueProvider<TItem, TSelection>(
     const call = useCustomProviderFunction();
     const t = useT();
     const [selection, setSelection] = useState<TSelection | null>(null);
+    const [search, setSearch] = useState('');
 
     const loadData = useCallback(async () => {
       // Skip fetch if initial data was provided
@@ -105,6 +110,15 @@ export function withContinueProvider<TItem, TSelection>(
       );
     }, [resolvedData, existingId]);
 
+    const visibleData = useMemo(() => {
+      const term = search.trim().toLowerCase();
+      return term
+        ? filteredData.filter((item) =>
+            String(getItemName(item)).toLowerCase().includes(term)
+          )
+        : filteredData;
+    }, [filteredData, search]);
+
     if (!isLoading && !resolvedData?.length) {
       return (
         <div className="text-center flex flex-col justify-center items-center text-[18px] leading-[26px] h-[300px]">
@@ -126,8 +140,22 @@ export function withContinueProvider<TItem, TSelection>(
     return (
       <div className="flex flex-col gap-[20px]">
         <div>{t(titleKey, titleDefault)}</div>
-        <div className="grid grid-cols-3 justify-items-center select-none cursor-pointer gap-[10px]">
-          {filteredData.map((item) => (
+        {filteredData.length > 6 && (
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('search_by_name', 'Search by name')}
+            className="w-full h-[44px] px-[14px] rounded-[8px] bg-newBgColorInner border border-newColColor text-[14px] outline-none focus:border-[#612BD3]"
+          />
+        )}
+        <div className="grid grid-cols-3 justify-items-center select-none cursor-pointer gap-[10px] max-h-[50vh] overflow-y-auto pe-[4px]">
+          {!visibleData.length && !!search.trim() && (
+            <div className="col-span-3 py-[20px] text-textItemBlur">
+              {t('no_results_found', 'No results found')}
+            </div>
+          )}
+          {visibleData.map((item) => (
             <div
               key={getItemId(item)}
               className={clsx(

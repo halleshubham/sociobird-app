@@ -18,6 +18,7 @@ import {
   NEW_USER_DISCOUNT_PERCENT,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing.razorpay';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
+import { BillingHistory } from '@gitroom/frontend/components/billing/billing.history.component';
 import { useSWRConfig } from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -314,9 +315,24 @@ export const MainBillingComponent: FC<{
     setSubscription(sub);
   }, [sub]);
   const updatePayment = useCallback(async () => {
-    const { portal } = await (await fetch('/billing/portal')).json();
-    window.location.href = portal;
-  }, []);
+    const response = await fetch('/billing/portal');
+    const body = await response.json().catch(() => ({}));
+    // not every provider has a hosted portal (Razorpay does not): say so
+    // instead of navigating to an undefined url, and take the user to the
+    // invoices that are listed on this page
+    if (!response.ok || !body?.portal) {
+      toast.show(
+        body?.message ||
+          t('billing_portal_unavailable', 'Could not open the payment portal'),
+        'warning'
+      );
+      document
+        .getElementById('billing-history')
+        ?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    window.location.href = body.portal;
+  }, [toast, t]);
   const currentPackage = useMemo(() => {
     if (!subscription) {
       return 'FREE';
@@ -727,10 +743,12 @@ export const MainBillingComponent: FC<{
       {!!subscription?.id && (
         <div className="flex justify-center mt-[20px] gap-[10px]">
           <Button onClick={updatePayment}>
-            {t(
-              'update_payment_method_invoices_history',
-              'Update Payment Method / Invoices History'
-            )}
+            {subscription?.provider === 'razorpay'
+              ? t('invoices_history', 'Invoices History')
+              : t(
+                  'update_payment_method_invoices_history',
+                  'Update Payment Method / Invoices History'
+                )}
           </Button>
           {isGeneral && !subscription?.cancelAt && (
             <Button
@@ -757,6 +775,7 @@ export const MainBillingComponent: FC<{
           )}
         </div>
       )}
+      {!!subscription?.id && <BillingHistory />}
       <FAQComponent />
       <div className="flex justify-center mt-[20px]">
         <LogoutComponent />

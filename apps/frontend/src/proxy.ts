@@ -124,7 +124,10 @@ export async function proxy(request: NextRequest) {
               domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
             }
           : {}),
-        expires: new Date(Date.now() + 15 * 60 * 1000),
+        // Long enough for a slow registration: a 15-minute cookie silently
+        // landed the invitee in a fresh personal workspace instead of the
+        // inviter's.
+        expires: new Date(Date.now() + 60 * 60 * 1000),
       });
       return redirect;
     }

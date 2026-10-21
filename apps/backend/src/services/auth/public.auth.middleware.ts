@@ -44,6 +44,9 @@ export class PublicAuthMiddleware implements NestMiddleware {
         }
 
         org = authorization.organization;
+        // The user who approved the OAuth app, so /me can show who is connected
+        // @ts-ignore
+        req.oauthUserId = authorization.userId;
       } else {
         org = await this._organizationService.getOrgByApiKey(auth);
         if (!org) {
@@ -65,8 +68,12 @@ export class PublicAuthMiddleware implements NestMiddleware {
       }
 
       this.setOrg(req, org);
+      const includeDeleted =
+        (req.headers['x-postiz-include-deleted'] as string)?.trim() === 'true';
       // @ts-ignore
       req.authOrgId = org.id;
+      // @ts-ignore
+      req.includeDeleted = includeDeleted;
 
       const overrideOrgId = (req.headers['x-postiz-org'] as string)?.trim();
 
@@ -84,7 +91,7 @@ export class PublicAuthMiddleware implements NestMiddleware {
             overrideOrgId
           );
 
-        if (!overrideOrg || overrideOrg.deletedAt) {
+        if (!overrideOrg || (overrideOrg.deletedAt && !includeDeleted)) {
           res
             .status(HttpStatus.NOT_FOUND)
             .json({ msg: 'Organization not found' });

@@ -48,3 +48,31 @@ add-subscription-guard		ours	present	libraries/nestjs-libraries/src/database/pri
 razorpay-admin-cancel		ours	present	libraries/nestjs-libraries/src/services/payment/providers/razorpay.provider.ts::override async cancelSubscription	admin Cancel subscription on Razorpay orgs
 razorpay-admin-charges		ours	present	libraries/nestjs-libraries/src/services/payment/providers/razorpay.provider.ts::razorpay.invoices.all	admin charges list
 admin-panel-shows-errors		ours	present	apps/frontend/src/components/layout/impersonate.tsx::errorMessage	Manage Billing and Add subscription surface server errors
+enterprise-token-check	sha:9259cf24	upstream	present	apps/backend/src/api/routes/enterprise.controller.ts::verifyEnterpriseToken	CVE-2026-94455
+secure-ids	sha:4c835138	upstream	present	libraries/nestjs-libraries/src/services/make.secure.id.ts::export	CVE-2026-94456
+secure-ids-in-oauth-state	sha:4c835138	upstream	present	apps/backend/src/api/routes/auth.controller.ts::makeSecureId	login state uses crypto ids
+instagram-video-limit-mapping	PR#2234	upstream	present	libraries/nestjs-libraries/src/integrations/social/instagram.provider.ts::300MB	reel/video limit errors
+delete-account-ignore-disabled	PR#2226	upstream	present	libraries/nestjs-libraries/src/database/prisma/users/users.service.ts::member.disabled	
+refresh-error-single-email	PR#1678	upstream	present	libraries/nestjs-libraries/src/integrations/refresh.integration.service.ts::informAboutRefreshError	
+social-connect-failure-log	PR#2225	upstream	present	apps/backend/src/api/routes/no.auth.integrations.controller.ts::Authentication failed for	
+post-save-error-toast	PR#2161	upstream	present	apps/frontend/src/components/new-launch/manage.modal.tsx::post_save_failed	
+uploader-keeps-batch	PR#2163	upstream	present	apps/frontend/src/components/media/new.uploader.tsx::currentUploads	
+add-channel-402	PR#2159	upstream	present	apps/frontend/src/components/launches/add.provider.component.tsx::response.status === 402	
+edit-group-name	PR#2183	upstream	present	apps/backend/src/api/routes/integrations.controller.ts::customers/:id	
+editor-rtl-auto	PR#2209	upstream	present	apps/frontend/src/components/new-launch/editor.tsx::dir: 'auto'	
+superadmin-include-deleted	sha:9485ca50	upstream	present	apps/backend/src/services/auth/public.auth.middleware.ts::x-postiz-include-deleted	
+superadmin-reset-credits	sha:4c5d42a9	upstream	present	apps/backend/src/public-api/routes/v1/public.integrations.controller.ts::credits/reset	
+mov-mp4-interchange	sha:dcb5b09e	upstream	present	libraries/nestjs-libraries/src/upload/r2.uploader.ts::QuickTime	iPhone .mov via multipart
+provider-concurrency-increase	sha:4e55a959	upstream	present	libraries/nestjs-libraries/src/integrations/social/linkedin.provider.ts::maxConcurrentJob = 8	
+group-schedules	sha:a194e3f4	upstream	present	libraries/nestjs-libraries/src/database/prisma/schema.prisma::batchId	Post.batchId
+new-creation-modal	sha:48aa7e2c	upstream	present	apps/frontend/src/components/new-launch/mobile.top.bar.tsx	
+channel-rename	sha:c3743d9e	upstream	present	libraries/nestjs-libraries/src/database/prisma/schema.prisma::customName	Integration.customName
+public-api-media-list	PR#1926	upstream	present	apps/backend/src/public-api/routes/v1/public.integrations.controller.ts::'/media'	
+mcp-media-list-tool	PR#1926	upstream	present	libraries/nestjs-libraries/src/chat/tools/tool.list.ts::MediaListTool	
+public-api-me	PR#2096	upstream	present	apps/backend/src/public-api/routes/v1/public.integrations.controller.ts::'/me'	
+billing-history-razorpay	sha:3bd88cee	ours	present	libraries/nestjs-libraries/src/services/payment/providers/razorpay.provider.ts::override async getInvoices	Razorpay invoices as billing history
+billing-history-ui	sha:3bd88cee	ours	present	apps/frontend/src/components/billing/main.billing.component.tsx::BillingHistory	
+invite-cookie-1h		ours	present	apps/frontend/src/proxy.ts::60 \* 60 \* 1000	from Postmill: 15 min cookie lost invitees
+sentry-abort-noise		ours	present	libraries/nestjs-libraries/src/sentry/initialize.sentry.ts::ECONNABORTED	from Postmill
+instagram-oauth-errors		ours	present	libraries/nestjs-libraries/src/integrations/social/instagram.provider.ts::authorization code expired	from Postmill
+polotno-stays-removed-in-media		ours	absent	apps/frontend/src/components/media/media.component.tsx::polotno|Polotno	modal port must not bring the designer back

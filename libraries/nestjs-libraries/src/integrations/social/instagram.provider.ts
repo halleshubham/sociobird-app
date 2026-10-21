@@ -6,7 +6,7 @@ import {
   PostResponse,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
-import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
+import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import { timer } from '@gitroom/helpers/utils/timer';
 import dayjs from 'dayjs';
 import {
@@ -113,10 +113,56 @@ export class InstagramProvider
         value: 'An unknown error occurred, please try again later',
       };
     }
+    // OAuth token-exchange errors (standalone Instagram login): without these
+    // every failed connect collapses into "Unknown Error"
+    if (
+      body.indexOf('Invalid authorization code') > -1 ||
+      body.indexOf('Matching code was not found') > -1
+    ) {
+      return {
+        type: 'bad-body' as const,
+        value:
+          'The Instagram authorization code expired or was already used, please restart the connection and complete it without going back in the browser',
+      };
+    }
+    if (
+      /redirect_uri/i.test(body) &&
+      /(match|identical|validating)/i.test(body)
+    ) {
+      return {
+        type: 'bad-body' as const,
+        value:
+          "Instagram OAuth redirect URI mismatch, the callback URL must be listed exactly in your Meta app's OAuth redirect URIs",
+      };
+    }
+    if (
+      body.indexOf('Invalid platform app') > -1 ||
+      body.indexOf('Invalid client_id') > -1
+    ) {
+      return {
+        type: 'bad-body' as const,
+        value:
+          'Instagram app ID is invalid, check the app credentials configured for this channel',
+      };
+    }
+    if (body.indexOf('Invalid client_secret') > -1) {
+      return {
+        type: 'bad-body' as const,
+        value:
+          'Instagram app secret is invalid, check the app credentials configured for this channel',
+      };
+    }
     if (body.indexOf('2207081') > -1) {
       return {
         type: 'bad-body' as const,
         value: "This account doesn't support Trial Reels",
+      };
+    }
+    if (body.indexOf('2207078') > -1) {
+      return {
+        type: 'bad-body' as const,
+        value:
+          'Instagram Trial Reel publish limit reached for this account, please try again later or publish the post as a regular Reel',
       };
     }
 
@@ -181,7 +227,8 @@ export class InstagramProvider
     if (body.indexOf('2207053') > -1) {
       return {
         type: 'bad-body' as const,
-        value: 'Unknown upload error, please try again',
+        value:
+          "Instagram failed to upload the video. If it exceeds Instagram's limits (300MB, 1920px width, 25Mbps bitrate), export a smaller version and try again",
       };
     }
 
@@ -423,7 +470,7 @@ export class InstagramProvider
   }
 
   async generateAuthUrl() {
-    const state = makeId(6);
+    const state = makeSecureId(6);
     return {
       url:
         `https://www.facebook.com/${META_GRAPH_API_VERSION}/dialog/oauth` +
@@ -433,7 +480,7 @@ export class InstagramProvider
         )}` +
         `&state=${state}` +
         `&scope=${encodeURIComponent(this.scopes.join(','))}`,
-      codeVerifier: makeId(10),
+      codeVerifier: makeSecureId(10),
       state,
     };
   }

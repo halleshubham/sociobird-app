@@ -66,7 +66,9 @@ export function useUppyUploader(props: {
       restrictions: {
         // maxNumberOfFiles: 5,
         // allowedFileTypes: allowedFileTypes.split(','),
-        maxFileSize: 1000000000, // Default 1GB, but we'll override with custom validation
+        // same 1 GB (binary) as the page-level check and the server; Uppy's own
+        // limit failed the file silently, nothing is sent and nothing is shown
+        maxFileSize: 1024 * 1024 * 1024,
       },
     });
 
@@ -212,6 +214,13 @@ export function useUppyUploader(props: {
         quality: 1,
       });
     }
+    // a file Uppy refuses (size, duplicates, ...) never reaches the upload step,
+    // so without this the user sees nothing happen
+    uppy2.on('restriction-failed', (file, error) => {
+      toast.show(error.message, 'warning');
+      setLocked(false);
+      props.onEnd();
+    });
     // Set additional metadata when a file is added
     uppy2.on('file-added', (file) => {
       setLocked(true);
@@ -222,7 +231,11 @@ export function useUppyUploader(props: {
       });
     });
     uppy2.on('error', (result) => {
-      uppy2.clear();
+      // a single file failing leaves the batch running, 'complete' reports it with the rest
+      if (Object.keys(uppy2.getState().currentUploads).length) {
+        return;
+      }
+      uppy2.cancelAll();
       setLocked(false);
       props.onEnd();
       fileOrderIndex = 0;
@@ -232,8 +245,18 @@ export function useUppyUploader(props: {
     });
     uppy2.on('complete', async (result) => {
       console.log(result);
-      for (const file of [...result.successful]) {
+      for (const file of [...result.successful, ...(result.failed || [])]) {
         uppy2.removeFile(file.id);
+      }
+
+      if (result.failed?.length) {
+        toast.show(
+          t(
+            'some_files_failed_to_upload',
+            'Some files failed to upload, please try again'
+          ),
+          'warning'
+        );
       }
 
       props.onEnd();
@@ -298,10 +321,14 @@ export function useUppyUploader(props: {
       onUploadSuccess(sortedSuccessful.map((p) => p.response.body.saved));
     });
     uppy2.on('upload-success', (file, response) => {
+      const current = uppy2.getState().files[file.id];
+      if (!current) {
+        return;
+      }
       // @ts-ignore
       uppy2.setFileState(file.id, {
         // @ts-ignore
-        progress: uppy2.getState().files[file.id].progress,
+        progress: current.progress,
         // @ts-ignore
         uploadURL: response.body.Location,
         response: response,

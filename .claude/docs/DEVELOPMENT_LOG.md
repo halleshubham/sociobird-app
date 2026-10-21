@@ -5,6 +5,26 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ---
 
+## 2026-10-18 (upstream sync, Oct 2026)
+
+- **Upstream sync `48490b81..7113c6ce`** (88 changes, all decided in `.claude/upstream/ledger.tsv`; `TRIAGED_THROUGH=7113c6ce`). Adopted: both CVE fixes, new creation modal + group schedules + date picker + tags + calendar line + responsive (schema: nullable `Post.batchId`, `Integration.customName`),
+  Instagram limit mappings, public API `GET /media` / `GET /me`, MCP `mediaListTool`, superadmin include-deleted + reset-credits, provider concurrency increases, `.mov`/`.mp4` interchange on multipart completion, several small fixes.
+  Modified: billing history (invoices) via a provider-neutral `getInvoices`, implemented for Razorpay (hosted invoice link; there is no PDF). Skipped: Stripe billing pages/tracking, HubSpot, clipping, ChatGPT/MCP widget files, menu moves.
+  Deferred: Mastra table mirror (needs Mastra upgrade; today `db push --accept-data-loss` can drop unmirrored Mastra tables), TikTok fixes, inline pictures, versioned autopost/email workflows, 13 unreviewed small commits.
+  Full lists: `.claude/upstream/divergences.md` ("Added by the October 2026 upstream sync"), `ledger.tsv`, `features.tsv`.
+- **Postmill** (`postmill-ai/postmill-app`, another Postiz fork) reviewed: see `.claude/upstream/postmill.md`. Three small fixes taken (invite cookie, Sentry abort noise, Instagram OAuth errors); larger ideas listed as candidates.
+- Porting lessons: cherry-picking merge commits (`-m 1`) of long-lived upstream branches drags in unrelated features (clipping came with media-list), so hand-port or take final file versions;
+  translation JSON conflicts are always safe to resolve as "ours wins + add missing keys" (script in the session, 5 lines of Python); PR#2217 (date picker) and the modal must be ported together.
+- Not verified: the app was not run. Frontend, backend and orchestrator `tsc` show no new errors (only the pre-existing implicit-any ones). Test on QAT: create-post modal, group schedules, date picker, tags, calendar, billing history (Razorpay org), `.mov` upload.
+
+## 2026-10-18
+
+- **Upstream UI port (branch `upstream-ui-port`, not deployed):** new creation modal, group schedules (per-channel dates), new date picker, tags, media picker, calendar line and responsive fixes from Postiz
+  (`a194e3f`, `c3743d9`, `48aa7e2`, PR#2217, `47175b5`, `e756fa5`, `9fedac4`). `c3743d9` is a merge of upstream main, so its frontend rides along with the calendar/menu/tags files:
+  open-post link, channel filter, rename channel, edit group name, curated post errors. Their small backends were ported too (additive schema: `Post.batchId`, `Integration.customName`;
+  `GET /posts/:id/release-url` without the TikTok resolve step). The editor needs upstream's inline-image plumbing (store/high order provider), but the X/WordPress/Listmonk flags stay off.
+  Not ported: billing pages, top menu moves, settings moves, Stripe re-enable notice (`ChannelsAfterPayment`), Facebook video title, TikTok resolve. `media.component.tsx` keeps Polotno removed and the AI video switch.
+
 ## 2026-10-12
 
 - **Backend sometimes never started (fixed):** on a fresh container the backend printed its `pnpm start` line and then nothing, so every `/api` call was a 502 (PM2 still said "online").
@@ -89,3 +109,8 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 - Removed the **unlicensed Polotno designer** (files `launches/polonto*`). Do not re-adopt it from upstream.
 - Added public Terms of Service and Privacy pages, `AI_VIDEO_GENERATION_ENABLED` kill switch, "coming soon" flags for unsupported providers,
   commented out the lifetime purchase offer on the billing page, new logo.
+
+## 2026-10-14 - Settings tabs rebrand
+
+- Replaced user-visible "Postiz" with "SocioBird" in the Settings tabs (Webhooks, Developers/Public API, OAuth app, Approved Apps) and in all locale `translation.json` values. Translation keys are unchanged.
+- Deliberately kept: the `postiz` CLI/npm package name and `POSTIZ_API_KEY` (real upstream identifiers), upstream docs links, and the GitHub open-source link.

@@ -1,9 +1,10 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { Role, ShortLinkPreference, SubscriptionTier } from '@prisma/client';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
+import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 
 @Injectable()
 export class OrganizationRepository {
@@ -21,7 +22,7 @@ export class OrganizationRepository {
       },
       data: {
         name: name ? `${name}###${id}` : `Unnamed User###${id}`,
-        apiKey: AuthService.fixedEncryption(makeId(20)),
+        apiKey: AuthService.fixedEncryption(makeSecureId(20)),
         isTrailing: false,
         subscription: {
           create: {
@@ -42,7 +43,7 @@ export class OrganizationRepository {
                   : `${saasName}+` + makeId(10) + '@shackyapps.in',
                 name: name ? `${name}###${id}` : `Unnamed User###${id}`,
                 providerName: 'LOCAL',
-                password: AuthService.hashPassword(makeId(500)),
+                password: AuthService.hashPassword(makeSecureId(500)),
                 timezone: 0,
               },
             },
@@ -240,7 +241,7 @@ export class OrganizationRepository {
         id: orgId,
       },
       data: {
-        apiKey: AuthService.fixedEncryption(makeId(20)),
+        apiKey: AuthService.fixedEncryption(makeSecureId(20)),
       },
     });
   }
@@ -416,6 +417,10 @@ export class OrganizationRepository {
     });
 
     if (checkIfInviteExists) {
+      Logger.warn(
+        `addUserToOrg: invite ${id} already consumed (user=${userId} org=${orgId})`,
+        OrganizationRepository.name
+      );
       return false;
     }
 
@@ -434,6 +439,10 @@ export class OrganizationRepository {
       checkForSubscription?.subscription?.subscriptionTier ===
         SubscriptionTier.STANDARD
     ) {
+      Logger.warn(
+        `addUserToOrg: org=${orgId} is on STANDARD, seat limit blocks invite join (user=${userId})`,
+        OrganizationRepository.name
+      );
       return false;
     }
 
@@ -466,7 +475,7 @@ export class OrganizationRepository {
     return this._organization.model.organization.create({
       data: {
         name: body.company,
-        apiKey: AuthService.fixedEncryption(makeId(20)),
+        apiKey: AuthService.fixedEncryption(makeSecureId(20)),
         allowTrial: true,
         isTrailing: true,
         users: {
@@ -536,6 +545,7 @@ export class OrganizationRepository {
         users: {
           select: {
             role: true,
+            disabled: true,
             user: {
               select: {
                 email: true,

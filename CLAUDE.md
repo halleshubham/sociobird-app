@@ -81,3 +81,4 @@ After meaningful work, add a dated entry to `.claude/docs/DEVELOPMENT_LOG.md`.
 
 SocioBird is a fork of Postiz. We take upstream features selectively and track every decision in `.claude/upstream/` (see its README;
 `/upstream-sync` runs the procedure). Never merge upstream wholesale, and do not use commit history to decide what is synced.
+Before porting anything from Postiz or another fork (see `.claude/upstream/postmill.md`), check `.claude/upstream/ledger.tsv` and `divergences.md`: it may already be adopted, modified, skipped or deferred.

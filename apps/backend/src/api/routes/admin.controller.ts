@@ -1,11 +1,17 @@
 import {
+  Body,
   Controller,
   Get,
   HttpException,
+  Put,
   Query,
 } from '@nestjs/common';
 import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
-import { User } from '@prisma/client';
+import { Organization, User } from '@prisma/client';
+import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
+import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
+import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
+import { StripLinksDto } from '@gitroom/nestjs-libraries/dtos/admin/strip.links.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { ErrorsService } from '@gitroom/nestjs-libraries/database/prisma/errors/errors.service';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
@@ -16,7 +22,9 @@ import dayjs from 'dayjs';
 export class AdminController {
   constructor(
     private _errorsService: ErrorsService,
-    private _adminStatsService: AdminStatsService
+    private _adminStatsService: AdminStatsService,
+    private _organizationService: OrganizationService,
+    private _integrationManager: IntegrationManager
   ) {}
 
   private assertSuperAdmin(user: User) {
@@ -67,5 +75,38 @@ export class AdminController {
       to: toDate.endOf('day').toDate(),
       unknownOnly: unknownOnly === 'true' || unknownOnly === '1',
     });
+  }
+
+  // Options of the organization the superadmin is currently viewing
+  @Get('/org-settings')
+  async getOrgSettings(
+    @GetUserFromRequest() user: User,
+    @GetOrgFromRequest() org: Organization
+  ) {
+    this.assertSuperAdmin(user);
+    const current = await this._organizationService.getOrgById(org.id);
+
+    return {
+      stripLinksProviders: current?.stripLinksProviders || [],
+      providers: this._integrationManager.getAllowedSocialsIntegrations(),
+    };
+  }
+
+  @Put('/org-settings/strip-links')
+  async setStripLinks(
+    @GetUserFromRequest() user: User,
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: StripLinksDto
+  ) {
+    this.assertSuperAdmin(user);
+    const allowed = this._integrationManager.getAllowedSocialsIntegrations();
+    if (body.providers.some((provider) => !allowed.includes(provider))) {
+      throw new HttpException('Unknown provider', 400);
+    }
+
+    return this._organizationService.setStripLinksProviders(
+      org.id,
+      body.providers
+    );
   }
 }

@@ -566,6 +566,118 @@ const ChargesModal: FC<{ close: () => void }> = ({ close }) => {
   );
 };
 
+interface OrgSettings {
+  stripLinksProviders: string[];
+  providers: string[];
+}
+
+const useOrgSettings = () => {
+  const fetch = useFetch();
+  return useSWR<OrgSettings>('/admin/org-settings', async () => {
+    return (await fetch('/admin/org-settings')).json();
+  }, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    revalidateIfStale: false,
+  });
+};
+
+const StripLinksModal: FC<{ close: () => void }> = ({ close }) => {
+  const fetch = useFetch();
+  const t = useT();
+  const toast = useToaster();
+  const { data, isLoading, mutate } = useOrgSettings();
+  const [selected, setSelected] = useState<string[] | null>(null);
+  const [saving, setSaving] = useState(false);
+  const current = selected ?? data?.stripLinksProviders ?? [];
+
+  const toggle = useCallback(
+    (provider: string) => () => {
+      setSelected(
+        current.includes(provider)
+          ? current.filter((p) => p !== provider)
+          : [...current, provider]
+      );
+    },
+    [current]
+  );
+
+  const save = useCallback(async () => {
+    setSaving(true);
+    const response = await fetch('/admin/org-settings/strip-links', {
+      method: 'PUT',
+      body: JSON.stringify({ providers: current }),
+    });
+    setSaving(false);
+    if (!response.ok) {
+      toast.show(
+        await errorMessage(response, 'Could not save the setting'),
+        'warning'
+      );
+      return;
+    }
+    await mutate();
+    toast.show(t('saved', 'Saved'), 'success');
+    close();
+  }, [current, close]);
+
+  return (
+    <div className="flex flex-col gap-[16px]">
+      <div className="text-[14px] opacity-80">
+        {t(
+          'strip_links_description',
+          'Links are removed from the post text before publishing on the selected providers (for example X charges more for posts with links). Applies to the organization you are viewing.'
+        )}
+      </div>
+      {isLoading ? (
+        <div>{t('loading', 'Loading...')}</div>
+      ) : (
+        <div className="grid grid-cols-2 gap-[8px] max-h-[50vh] overflow-y-auto">
+          {(data?.providers || []).map((provider) => (
+            <label
+              key={provider}
+              className="flex items-center gap-[8px] cursor-pointer capitalize"
+            >
+              <input
+                type="checkbox"
+                checked={current.includes(provider)}
+                onChange={toggle(provider)}
+              />
+              {provider}
+            </label>
+          ))}
+        </div>
+      )}
+      <div>
+        <Button onClick={save} loading={saving} disabled={isLoading}>
+          {t('save', 'Save')}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const StripLinks = () => {
+  const { openModal } = useModals();
+  const t = useT();
+
+  const handleClick = useCallback(() => {
+    openModal({
+      title: t('strip_links_title', 'Remove links from posts'),
+      children: (close) => <StripLinksModal close={close} />,
+    });
+  }, []);
+
+  return (
+    <div
+      className="px-[10px] rounded-[4px] bg-teal-700 text-white cursor-pointer whitespace-nowrap"
+      onClick={handleClick}
+    >
+      {t('strip_links_button', 'Link options')}
+    </div>
+  );
+};
+
 const ManageBilling = () => {
   const { openModal } = useModals();
   const t = useT();
@@ -1134,6 +1246,7 @@ export const Impersonate = () => {
                 {user?.tier?.current === 'FREE' && <Subscription />}
                 {user?.tier?.team_members && <AddTeamMember />}
                 {billingEnabled && <ManageBilling />}
+                <StripLinks />
                 <SwitchUser />
               </div>
             ) : (

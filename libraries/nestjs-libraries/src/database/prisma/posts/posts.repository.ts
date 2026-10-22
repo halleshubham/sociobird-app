@@ -30,8 +30,18 @@ export class PostsRepository {
     private _comments: PrismaRepository<'comments'>,
     private _tags: PrismaRepository<'tags'>,
     private _tagsPosts: PrismaRepository<'tagsPosts'>,
-    private _errors: PrismaRepository<'errors'>
+    private _errors: PrismaRepository<'errors'>,
+    private _organization: PrismaRepository<'organization'>
   ) {}
+
+  async getStripLinksProviders(organizationId: string) {
+    const org = await this._organization.model.organization.findUnique({
+      where: { id: organizationId },
+      select: { stripLinksProviders: true },
+    });
+
+    return org?.stripLinksProviders || [];
+  }
 
   searchForMissingThreeHoursPosts() {
     return this._post.model.post.findMany({

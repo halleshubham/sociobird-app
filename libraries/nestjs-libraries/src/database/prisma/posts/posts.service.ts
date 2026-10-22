@@ -615,6 +615,24 @@ export class PostsService {
     return this._postRepository.getOldPosts(orgId, date);
   }
 
+  // An organization can ask for the links to be removed from what is published
+  // on some providers (set by a superadmin), applied right before publishing
+  public async removeLinksWhenRequested(
+    orgId: string,
+    providerIdentifier: string,
+    posts: Post[]
+  ): Promise<Post[]> {
+    const providers = await this._postRepository.getStripLinksProviders(orgId);
+    if (!providers.includes(providerIdentifier)) {
+      return posts;
+    }
+
+    return posts.map((post) => ({
+      ...post,
+      content: stripLinks(post.content),
+    }));
+  }
+
   public async updateTags(orgId: string, post: Post[]): Promise<Post[]> {
     const plainText = JSON.stringify(post);
     const extract = Array.from(

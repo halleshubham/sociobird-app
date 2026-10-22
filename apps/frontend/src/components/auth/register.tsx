@@ -35,6 +35,7 @@ type Inputs = {
   email: string;
   password: string;
   company: string;
+  phone: string;
   providerToken: string;
   provider: string;
 };
@@ -119,6 +120,14 @@ export function RegisterAfter({
   });
   const fetchData = useFetch();
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
+    // required on the web form, optional on the API for older clients
+    if (!data.phone?.trim()) {
+      form.setError('phone', {
+        type: 'required',
+        message: t('mobile_number_required', 'Mobile number is required'),
+      });
+      return;
+    }
     setLoading(true);
     await fetchData('/auth/register', {
       method: 'POST',
@@ -220,6 +229,14 @@ export function RegisterAfter({
                   autoComplete="off"
                   type="text"
                   placeholder={t('label_company', 'Company')}
+                />
+                <Input
+                  label="Mobile number"
+                  translationKey="label_phone"
+                  {...form.register('phone')}
+                  autoComplete="tel"
+                  type="tel"
+                  placeholder={t('label_phone', 'Mobile number (with country code)')}
                 />
               </div>
               <div className={clsx('text-[12px]')}>

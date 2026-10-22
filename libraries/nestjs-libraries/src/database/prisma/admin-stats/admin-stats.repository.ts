@@ -55,6 +55,23 @@ export interface StatsResponse {
   publishingChannels: { total: number; perSocial: PerSocial[] };
   scheduledChannels: { total: number; perSocial: PerSocial[] };
   activeOrgsBySource: { total: number; perSocial: PerSocial[] };
+  // new registrations in the range, only for the platform-wide stats
+  signups?: SignupStats;
+}
+
+export interface SignupStats {
+  total: number;
+  perDay: { day: string; count: number }[];
+  recent: {
+    id: string;
+    createdAt: string;
+    name: string | null;
+    email: string;
+    phone: string | null;
+    source: string;
+    organization: string | null;
+    plan: string;
+  }[];
 }
 
 const sortDesc = (list: PerSocial[]) =>
@@ -65,7 +82,8 @@ export class AdminStatsRepository {
   constructor(
     private _post: PrismaRepository<'post'>,
     private _integration: PrismaRepository<'integration'>,
-    private _errors: PrismaRepository<'errors'>
+    private _errors: PrismaRepository<'errors'>,
+    private _user: PrismaRepository<'user'>
   ) {}
 
   private async errorStats(params: StatsParams) {
@@ -404,14 +422,81 @@ export class AdminStatsRepository {
     };
   }
 
+  private async signupStats(params: StatsParams): Promise<SignupStats> {
+    const where: Prisma.UserWhereInput = {
+      createdAt: { gte: params.from, lte: params.to },
+      deletedAt: null,
+    };
+
+    const [total, days, recent] = await Promise.all([
+      this._user.model.user.count({ where }),
+      this._user.model.user.findMany({
+        where,
+        select: { createdAt: true },
+        take: 20000,
+      }),
+      this._user.model.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+        select: {
+          id: true,
+          createdAt: true,
+          name: true,
+          email: true,
+          phone: true,
+          providerName: true,
+          organizations: {
+            take: 1,
+            select: {
+              organization: {
+                select: {
+                  name: true,
+                  subscription: { select: { subscriptionTier: true } },
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const perDay = days.reduce((acc, { createdAt }) => {
+      const day = createdAt.toISOString().slice(0, 10);
+      acc.set(day, (acc.get(day) || 0) + 1);
+      return acc;
+    }, new Map<string, number>());
+
+    return {
+      total,
+      perDay: [...perDay.entries()]
+        .map(([day, count]) => ({ day, count }))
+        .sort((a, b) => b.day.localeCompare(a.day)),
+      recent: recent.map((user) => {
+        const organization = user.organizations[0]?.organization;
+        return {
+          id: user.id,
+          createdAt: user.createdAt.toISOString(),
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          source: user.providerName,
+          organization: organization?.name || null,
+          plan: organization?.subscription?.subscriptionTier || 'FREE',
+        };
+      }),
+    };
+  }
+
   async getStats(params: StatsParams): Promise<StatsResponse> {
-    const [errors, posts, accounts, connected, activeOrgsBySource] =
+    const [errors, posts, accounts, connected, activeOrgsBySource, signups] =
       await Promise.all([
         this.errorStats(params),
         this.postStats(params),
         this.accountStats(params),
         this.connectedStats(params),
         this.sourceStats(params),
+        params.organizationId ? undefined : this.signupStats(params),
       ]);
 
     return {
@@ -425,6 +510,7 @@ export class AdminStatsRepository {
       publishingChannels: accounts.publishingChannels,
       scheduledChannels: accounts.scheduledChannels,
       activeOrgsBySource,
+      ...(signups ? { signups } : {}),
     };
   }
 }

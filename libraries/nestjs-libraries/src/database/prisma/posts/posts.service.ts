@@ -53,7 +53,7 @@ import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { stripLinks } from '@gitroom/helpers/utils/strip.links';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
+import { stripHtmlValidation, removeLinks } from '@gitroom/helpers/utils/strip.html.validation';
 import { countLength } from '@gitroom/helpers/utils/count.length';
 
 type PostWithConditionals = Post & {
@@ -613,6 +613,24 @@ export class PostsService {
 
   async getOldPosts(orgId: string, date: string) {
     return this._postRepository.getOldPosts(orgId, date);
+  }
+
+  // An organization can ask for the links to be removed from what is published
+  // on some providers (set by a superadmin), applied right before publishing
+  public async removeLinksWhenRequested(
+    orgId: string,
+    providerIdentifier: string,
+    posts: Post[]
+  ): Promise<Post[]> {
+    const providers = await this._postRepository.getStripLinksProviders(orgId);
+    if (!providers.includes(providerIdentifier)) {
+      return posts;
+    }
+
+    return posts.map((post) => ({
+      ...post,
+      content: removeLinks(post.content),
+    }));
   }
 
   public async updateTags(orgId: string, post: Post[]): Promise<Post[]> {

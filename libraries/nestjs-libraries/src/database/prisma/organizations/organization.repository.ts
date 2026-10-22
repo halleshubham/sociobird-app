@@ -278,6 +278,14 @@ export class OrganizationRepository {
     });
   }
 
+  setStripLinksProviders(organizationId: string, providers: string[]) {
+    return this._organization.model.organization.update({
+      where: { id: organizationId },
+      data: { stripLinksProviders: providers },
+      select: { stripLinksProviders: true },
+    });
+  }
+
   async getOrgById(id: string) {
     return this._organization.model.organization.findUnique({
       where: {
@@ -490,6 +498,7 @@ export class OrganizationRepository {
                   : '',
                 providerName: body.provider,
                 providerId: body.providerId || '',
+                phone: body.phone?.trim() || null,
                 timezone: 0,
                 ip,
                 agent: userAgent,

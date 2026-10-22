@@ -221,9 +221,10 @@ export class PostActivity {
           integration.providerIdentifier
         );
 
-        const newPosts = await this._postService.updateTags(
+        const newPosts = await this._postService.removeLinksWhenRequested(
           integration.organizationId,
-          posts
+          integration.providerIdentifier,
+          await this._postService.updateTags(integration.organizationId, posts)
         );
 
         return getIntegration.comment(
@@ -346,9 +347,10 @@ export class PostActivity {
     );
 
     setHeartbeatDetails('update tags');
-    const newPosts = await this._postService.updateTags(
+    const newPosts = await this._postService.removeLinksWhenRequested(
       integration.organizationId,
-      posts
+      integration.providerIdentifier,
+      await this._postService.updateTags(integration.organizationId, posts)
     );
 
     setHeartbeatDetails('resolve media');

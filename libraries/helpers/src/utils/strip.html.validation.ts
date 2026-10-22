@@ -303,3 +303,17 @@ export const convertToAscii = (value: string): string => {
       return match.replace(p1, replacer.join(''));
     });
 };
+
+// Removes the links from a post (html or plain text) for providers that charge
+// more, or reach less, for posts that contain one. A link whose text is not a
+// url keeps its text.
+export const removeLinks = (value: string): string => {
+  const urlPattern = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+  return value
+    .replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, (_, text: string) =>
+      /(?:https?:\/\/|www\.)/i.test(text) ? '' : text
+    )
+    .replace(urlPattern, '')
+    .replace(/[ \t]+(<\/p>|\n|$)/gi, '$1')
+    .replace(/[ \t]{2,}/g, ' ');
+};

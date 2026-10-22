@@ -17,6 +17,21 @@ interface StatsBlock {
   perSocial: PerSocial[];
 }
 
+interface SignupStats {
+  total: number;
+  perDay: { day: string; count: number }[];
+  recent: {
+    id: string;
+    createdAt: string;
+    name: string | null;
+    email: string;
+    phone: string | null;
+    source: string;
+    organization: string | null;
+    plan: string;
+  }[];
+}
+
 interface StatsResponse {
   from: string;
   to: string;
@@ -28,6 +43,7 @@ interface StatsResponse {
   publishingChannels?: StatsBlock;
   scheduledChannels?: StatsBlock;
   activeOrgsBySource?: StatsBlock;
+  signups?: SignupStats;
 }
 
 const isoDaysAgo = (days: number) => {
@@ -122,6 +138,63 @@ const PerSocialTable: FC<{ title: string; block: StatsBlock }> = ({
         </div>
       ))
     )}
+  </div>
+);
+
+const SignupsSection: FC<{ signups: SignupStats }> = ({ signups }) => (
+  <div className="flex gap-[12px] items-start">
+    <div className="w-[260px] shrink-0 border border-newTableBorder rounded-[8px] overflow-hidden">
+      <div className="grid grid-cols-[1fr_80px] gap-[12px] px-[12px] py-[10px] bg-newBgColorInner text-[12px] uppercase opacity-70 border-b border-newTableBorder">
+        <div>Signups per day</div>
+        <div className="text-right">Count</div>
+      </div>
+      {signups.perDay.length === 0 ? (
+        <div className="px-[12px] py-[10px] text-[13px] opacity-70">
+          No signups for this timeframe.
+        </div>
+      ) : (
+        signups.perDay.map((row) => (
+          <div
+            key={row.day}
+            className="grid grid-cols-[1fr_80px] gap-[12px] px-[12px] py-[10px] text-[13px] border-b border-newTableBorder last:border-b-0"
+          >
+            <div>{row.day}</div>
+            <div className="text-right">{row.count.toLocaleString()}</div>
+          </div>
+        ))
+      )}
+    </div>
+    <div className="flex-1 min-w-[640px] border border-newTableBorder rounded-[8px] overflow-hidden">
+      <div className="grid grid-cols-[150px_1fr_1.4fr_140px_1fr_90px_90px] gap-[12px] px-[12px] py-[10px] bg-newBgColorInner text-[12px] uppercase opacity-70 border-b border-newTableBorder">
+        <div>Signed up</div>
+        <div>Name</div>
+        <div>Email</div>
+        <div>Mobile</div>
+        <div>Organization</div>
+        <div>Plan</div>
+        <div>Source</div>
+      </div>
+      {signups.recent.length === 0 ? (
+        <div className="px-[12px] py-[10px] text-[13px] opacity-70">
+          No signups for this timeframe.
+        </div>
+      ) : (
+        signups.recent.map((row) => (
+          <div
+            key={row.id}
+            className="grid grid-cols-[150px_1fr_1.4fr_140px_1fr_90px_90px] gap-[12px] px-[12px] py-[10px] text-[13px] border-b border-newTableBorder last:border-b-0"
+          >
+            <div>{new Date(row.createdAt).toLocaleString()}</div>
+            <div className="truncate">{row.name || '-'}</div>
+            <div className="truncate">{row.email}</div>
+            <div className="truncate">{row.phone || '-'}</div>
+            <div className="truncate">{row.organization || '-'}</div>
+            <div>{row.plan}</div>
+            <div className="capitalize">{row.source.toLowerCase()}</div>
+          </div>
+        ))
+      )}
+    </div>
   </div>
 );
 
@@ -231,6 +304,11 @@ export const AdminStatsComponent: FC = () => {
       ) : (
         <div className="overflow-x-auto pb-[8px] scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor flex flex-col gap-[16px]">
           <div className="flex gap-[12px]">
+            {data.signups && (
+              <div className="flex-1 min-w-[220px] shrink-0">
+                <SummaryCard label="New signups" value={data.signups.total} />
+              </div>
+            )}
             <div className="flex-1 min-w-[220px] shrink-0">
               <SummaryCard
                 label="Total posts published"
@@ -355,6 +433,8 @@ export const AdminStatsComponent: FC = () => {
               </div>
             )}
           </div>
+
+          {data.signups && <SignupsSection signups={data.signups} />}
         </div>
       )}
     </div>

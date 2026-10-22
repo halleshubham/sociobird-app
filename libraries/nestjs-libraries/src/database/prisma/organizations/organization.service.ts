@@ -48,6 +48,13 @@ export class OrganizationService {
     return this._organizationRepository.addUserToOrg(userId, id, orgId, role);
   }
 
+  setStripLinksProviders(organizationId: string, providers: string[]) {
+    return this._organizationRepository.setStripLinksProviders(
+      organizationId,
+      providers
+    );
+  }
+
   getOrgById(id: string) {
     return this._organizationRepository.getOrgById(id);
   }

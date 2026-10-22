@@ -1,7 +1,9 @@
 import {
   IsDefined,
   IsEmail,
+  IsOptional,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
   ValidateIf,
@@ -35,6 +37,14 @@ export class CreateOrgUserDto {
   @MinLength(3)
   @MaxLength(128)
   company: string;
+
+  // optional for the API (older mobile apps do not send it), the web form asks for it
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+?[0-9][0-9 ()-]{6,19}$/, {
+    message: 'Enter a valid mobile number',
+  })
+  phone?: string;
 
   datafast_visitor_id: string;
 }

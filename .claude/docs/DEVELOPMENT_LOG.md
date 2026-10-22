@@ -114,3 +114,10 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 - Replaced user-visible "Postiz" with "SocioBird" in the Settings tabs (Webhooks, Developers/Public API, OAuth app, Approved Apps) and in all locale `translation.json` values. Translation keys are unchanged.
 - Deliberately kept: the `postiz` CLI/npm package name and `POSTIZ_API_KEY` (real upstream identifiers), upstream docs links, and the GitHub open-source link.
+
+## 2026-10-22 — Signups in admin stats, mobile number at registration, per-org link stripping
+
+- Admin stats (`/admin/stats`) now returns `signups` (total, per day, recent 100 users with phone/source/plan); rendered in `admin-stats.component.tsx`. Hidden when an org is impersonated.
+- Registration collects `User.phone` (required on the web form, optional in the API so older clients keep working).
+- `Organization.stripLinksProviders` (additive String[]): superadmin picks providers (e.g. `x`) via "Link options" in the impersonation bar; `PostsService.removeLinksWhenRequested` strips links before publishing (posts and thread comments) in `post.activity.ts`. Activity signatures unchanged.
+- Schema changes are additive (`db push` safe).

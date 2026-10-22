@@ -492,7 +492,11 @@ export class PostsRepository {
             organizationId: update.organizationId,
             platform: update.integration.providerIdentifier,
             postId: update.id,
-            body: typeof body === 'string' ? body : JSON.stringify(body),
+            // the post body carries the channel row: never store its tokens
+            body: (typeof body === 'string' ? body : JSON.stringify(body)).replace(
+              /(\\*"(?:token|refreshToken)\\*":\s*\\*")[^"\\]*/g,
+              '$1[redacted]'
+            ),
           },
         });
       } catch (err) {}

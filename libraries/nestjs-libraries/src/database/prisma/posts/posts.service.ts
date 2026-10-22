@@ -53,7 +53,7 @@ import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { stripLinks } from '@gitroom/helpers/utils/strip.links';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { stripHtmlValidation, removeLinks } from '@gitroom/helpers/utils/strip.html.validation';
+import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { countLength } from '@gitroom/helpers/utils/count.length';
 
 type PostWithConditionals = Post & {
@@ -629,7 +629,7 @@ export class PostsService {
 
     return posts.map((post) => ({
       ...post,
-      content: removeLinks(post.content),
+      content: stripLinks(post.content),
     }));
   }
 

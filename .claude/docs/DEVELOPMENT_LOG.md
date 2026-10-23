@@ -124,3 +124,6 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ## 2026-10-23 — Link stripping on for X by default
 - `Organization.stripLinksConfigured` (additive, default false). Until a superadmin saves a choice, providers that declare `stripLinksByDefault()` (X) have links removed for every organization; once saved, the organization's own `stripLinksProviders` list decides (so X can be switched off per customer). No backfill needed.
+
+## 2026-10-23 — Botsab videos are uploaded first
+- `BotsabProvider.post()` uploads a video to Botsab's `POST /media/upload` and creates the campaign with the returned `fileId` instead of a `url`. Botsab only checks/re-encodes a video for WhatsApp when it holds the file; with a `url` a failed download silently falls back to the raw link, which WhatsApp shows as an unplayable image-like bubble. Over 100 MB fails with a clear error. Images and text are unchanged.

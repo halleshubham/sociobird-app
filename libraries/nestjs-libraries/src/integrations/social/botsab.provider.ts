@@ -238,6 +238,44 @@ export class BotsabProvider extends SocialAbstract implements SocialProvider {
     return { type: 'image' as const, url: media.path, caption };
   }
 
+  // Botsab only checks and re-encodes a video for WhatsApp when it holds the
+  // file itself (an upload). Given a plain url it tries to download it and,
+  // when that fails, hands the raw link to WhatsApp - which shows an
+  // unplayable, image-like bubble. So the video is uploaded to Botsab first
+  // and the campaign refers to it by fileId. Botsab's upload limit is 100 MB.
+  private readonly MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+
+  private async uploadVideo(body: BotsabCredentials, path: string) {
+    const source = await fetch(path);
+    if (!source.ok) {
+      throw new Error(`Could not read the video to send (HTTP ${source.status})`);
+    }
+
+    const bytes = Buffer.from(await source.arrayBuffer());
+    if (bytes.length > this.MAX_VIDEO_BYTES) {
+      throw new Error('Video is larger than the 100 MB Botsab accepts');
+    }
+
+    const extension = new URL(path).pathname.match(/\.[a-z0-9]{2,4}$/i)?.[0];
+    const form = new FormData();
+    form.append(
+      'file',
+      new Blob([bytes], { type: source.headers.get('content-type') || 'video/mp4' }),
+      `video${extension || '.mp4'}`
+    );
+
+    const url = body.url.replace(/\/$/, '');
+    const uploaded = await (
+      await this.fetch(`${url}/media/upload`, {
+        method: 'POST',
+        headers: { 'x-api-key': body.apiKey },
+        body: form,
+      })
+    ).json();
+
+    return uploaded.fileId as string;
+  }
+
   // Delivery pacing for group posts, handed to Botsab's own campaign runner
   // instead of this provider sending message-by-message. Botsab's built-in
   // group defaults (3-8 min between groups, 8/day cap) are tuned for a
@@ -274,10 +312,15 @@ export class BotsabProvider extends SocialAbstract implements SocialProvider {
   ): Promise<PostResponse[]> {
     const [firstPost] = postDetails;
     const body = this.credentials(integration);
-    const messageBody = this.messageBody(
-      firstPost.media?.[0],
-      firstPost.message
-    );
+    const media = firstPost.media?.[0];
+    const messageBody =
+      media?.type === 'video'
+        ? {
+            type: 'video' as const,
+            fileId: await this.uploadVideo(body, media.path),
+            caption: firstPost.message.slice(0, 1024),
+          }
+        : this.messageBody(media, firstPost.message);
     const { kind, listId } = parseListRef(integration.internalId);
 
     // Hand off to Botsab's own campaign runner instead of sending to every

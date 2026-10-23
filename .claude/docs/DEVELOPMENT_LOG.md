@@ -127,3 +127,6 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ## 2026-10-23 — Botsab videos are uploaded first
 - `BotsabProvider.post()` uploads a video to Botsab's `POST /media/upload` and creates the campaign with the returned `fileId` instead of a `url`. Botsab only checks/re-encodes a video for WhatsApp when it holds the file; with a `url` a failed download silently falls back to the raw link, which WhatsApp shows as an unplayable image-like bubble. Over 100 MB fails with a clear error. Images and text are unchanged.
+
+## 2026-10-23 — Botsab video fix, second attempt (root cause)
+- `PostsService.updateMedia` sets `type: 'image'` on every attachment, so `media.type === 'video'` never held and Botsab always got an image campaign. The upload-first change (previous entry) therefore never ran. `BotsabProvider.post()` now tells a video by file extension (`mp4`, `mov`, `m4v`, `webm`), the way the other providers do. Do not rely on `MediaContent.type` in providers.

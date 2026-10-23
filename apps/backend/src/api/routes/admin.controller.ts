@@ -86,9 +86,18 @@ export class AdminController {
     this.assertSuperAdmin(user);
     const current = await this._organizationService.getOrgById(org.id);
 
+    const providers = this._integrationManager.getAllowedSocialsIntegrations();
+
+    // until a superadmin saves a choice, the providers' own defaults apply
     return {
-      stripLinksProviders: current?.stripLinksProviders || [],
-      providers: this._integrationManager.getAllowedSocialsIntegrations(),
+      stripLinksProviders: current?.stripLinksConfigured
+        ? current.stripLinksProviders
+        : providers.filter((provider) =>
+            this._integrationManager
+              .getSocialIntegration(provider)
+              ?.stripLinksByDefault?.()
+          ),
+      providers,
     };
   }
 

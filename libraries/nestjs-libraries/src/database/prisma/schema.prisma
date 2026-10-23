@@ -23,6 +23,7 @@ model Organization {
   shortlink           ShortLinkPreference  @default(ASK)
   // provider identifiers whose posts get their links removed before publishing
   stripLinksProviders String[]             @default([])
+  stripLinksConfigured Boolean             @default(false)
   autoPost            AutoPost[]
   Comments            Comments[]
   credits             Credits[]

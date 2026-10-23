@@ -166,6 +166,8 @@ export interface SocialProvider
   refreshWait?: boolean;
   convertToJPEG?: boolean;
   stripLinks?: () => boolean;
+  // links are removed before publishing unless the organization says otherwise
+  stripLinksByDefault?: () => boolean;
   refreshCron?: boolean;
   dto?: any;
   maxLength: (additionalSettings?: any, settings?: any) => number;

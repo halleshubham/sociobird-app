@@ -10,6 +10,7 @@ import { SocialAbstract } from '@gitroom/nestjs-libraries/integrations/social.ab
 import dayjs from 'dayjs';
 import { Integration } from '@prisma/client';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
+import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 
 type BotsabCredentials = {
   url: string;
@@ -231,10 +232,6 @@ export class BotsabProvider extends SocialAbstract implements SocialProvider {
     }
 
     const caption = message.slice(0, 1024);
-    if (media.type === 'video') {
-      return { type: 'video' as const, url: media.path, caption };
-    }
-
     return { type: 'image' as const, url: media.path, caption };
   }
 
@@ -313,8 +310,12 @@ export class BotsabProvider extends SocialAbstract implements SocialProvider {
     const [firstPost] = postDetails;
     const body = this.credentials(integration);
     const media = firstPost.media?.[0];
+    // the stored media type is always 'image', so a video is told by its extension
+    const isVideo = ['mp4', 'mov', 'm4v', 'webm'].some((extension) =>
+      hasExtension(media?.path, extension)
+    );
     const messageBody =
-      media?.type === 'video'
+      media && isVideo
         ? {
             type: 'video' as const,
             fileId: await this.uploadVideo(body, media.path),

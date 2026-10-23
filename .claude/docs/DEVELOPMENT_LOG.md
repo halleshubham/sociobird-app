@@ -121,3 +121,6 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 - Registration collects `User.phone` (required on the web form, optional in the API so older clients keep working).
 - `Organization.stripLinksProviders` (additive String[]): superadmin picks providers (e.g. `x`) via "Link options" in the impersonation bar; `PostsService.removeLinksWhenRequested` strips links before publishing (posts and thread comments) in `post.activity.ts`. Activity signatures unchanged.
 - Schema changes are additive (`db push` safe).
+
+## 2026-10-23 — Link stripping on for X by default
+- `Organization.stripLinksConfigured` (additive, default false). Until a superadmin saves a choice, providers that declare `stripLinksByDefault()` (X) have links removed for every organization; once saved, the organization's own `stripLinksProviders` list decides (so X can be switched off per customer). No backfill needed.

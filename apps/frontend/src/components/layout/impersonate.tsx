@@ -626,7 +626,7 @@ const StripLinksModal: FC<{ close: () => void }> = ({ close }) => {
       <div className="text-[14px] opacity-80">
         {t(
           'strip_links_description',
-          'Links are removed from the post text before publishing on the selected providers (for example X charges more for posts with links). Applies to the organization you are viewing.'
+          'Links are removed from the post text before publishing on the selected providers. X is on by default because it charges more for posts with links; untick it to keep links for this organization. Applies to the organization you are viewing.'
         )}
       </div>
       {isLoading ? (

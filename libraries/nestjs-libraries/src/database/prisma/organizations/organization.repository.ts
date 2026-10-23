@@ -281,7 +281,7 @@ export class OrganizationRepository {
   setStripLinksProviders(organizationId: string, providers: string[]) {
     return this._organization.model.organization.update({
       where: { id: organizationId },
-      data: { stripLinksProviders: providers },
+      data: { stripLinksProviders: providers, stripLinksConfigured: true },
       select: { stripLinksProviders: true },
     });
   }

@@ -615,15 +615,22 @@ export class PostsService {
     return this._postRepository.getOldPosts(orgId, date);
   }
 
-  // An organization can ask for the links to be removed from what is published
-  // on some providers (set by a superadmin), applied right before publishing
+  // Links are removed from what is published on the providers that ask for it
+  // by default (X), unless a superadmin saved a different choice for the
+  // organization. Applied right before publishing
   public async removeLinksWhenRequested(
     orgId: string,
     providerIdentifier: string,
     posts: Post[]
   ): Promise<Post[]> {
-    const providers = await this._postRepository.getStripLinksProviders(orgId);
-    if (!providers.includes(providerIdentifier)) {
+    const { configured, providers } =
+      await this._postRepository.getStripLinksProviders(orgId);
+    const strip = configured
+      ? providers.includes(providerIdentifier)
+      : !!this._integrationManager
+          .getSocialIntegration(providerIdentifier)
+          ?.stripLinksByDefault?.();
+    if (!strip) {
       return posts;
     }
 

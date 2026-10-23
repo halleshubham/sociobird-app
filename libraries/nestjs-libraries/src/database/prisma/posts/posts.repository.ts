@@ -37,10 +37,13 @@ export class PostsRepository {
   async getStripLinksProviders(organizationId: string) {
     const org = await this._organization.model.organization.findUnique({
       where: { id: organizationId },
-      select: { stripLinksProviders: true },
+      select: { stripLinksProviders: true, stripLinksConfigured: true },
     });
 
-    return org?.stripLinksProviders || [];
+    return {
+      configured: !!org?.stripLinksConfigured,
+      providers: org?.stripLinksProviders || [],
+    };
   }
 
   searchForMissingThreeHoursPosts() {

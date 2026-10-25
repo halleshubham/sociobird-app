@@ -17,7 +17,7 @@ import {
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
 import { TikTokDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/tiktok.dto';
 import { timer } from '@gitroom/helpers/utils/timer';
-import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 import { Integration } from '@prisma/client';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
@@ -79,12 +79,12 @@ export class TiktokBusinessProvider
     }
     if (
       (firstItems?.length ?? 0) > 1 &&
-      firstItems?.some((p) => (p?.path?.indexOf?.('mp4') ?? -1) > -1)
+      firstItems?.some((p) => isVideoPath(p?.path))
     ) {
       return 'Only pictures are supported when selecting multiple items';
     } else if (
       firstItems?.length !== 1 &&
-      (firstItems?.[0]?.path?.indexOf?.('mp4') ?? -1) > -1
+      isVideoPath(firstItems?.[0]?.path)
     ) {
       return 'You need one media';
     }
@@ -668,7 +668,7 @@ export class TiktokBusinessProvider
     integration: Integration
   ): Promise<PostResponse[]> {
     const [firstPost] = postDetails;
-    const isPhoto = !hasExtension(firstPost?.media?.[0]?.path, 'mp4');
+    const isPhoto = !isVideoPath(firstPost?.media?.[0]?.path);
 
     const body = isPhoto
       ? await this.buildPhotoBody(id, firstPost, accessToken)

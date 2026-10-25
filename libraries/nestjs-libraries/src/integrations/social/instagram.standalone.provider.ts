@@ -15,6 +15,7 @@ import { InstagramProvider } from '@gitroom/nestjs-libraries/integrations/social
 import { META_GRAPH_API_VERSION } from '@gitroom/nestjs-libraries/integrations/social/facebook.provider';
 import { Integration } from '@prisma/client';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
+import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 
 const instagramProvider = new InstagramProvider();
 
@@ -55,7 +56,7 @@ export class InstagramStandaloneProvider
         return 'Trial Reels can only have one video';
       }
       const hasVideo = firstPost?.some(
-        (f) => (f?.path?.indexOf?.('mp4') ?? -1) > -1
+        (f) => isVideoPath(f?.path)
       );
       if (!hasVideo) {
         return 'Trial Reels must be a video';

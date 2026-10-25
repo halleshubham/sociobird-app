@@ -130,3 +130,8 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ## 2026-10-23 — Botsab video fix, second attempt (root cause)
 - `PostsService.updateMedia` sets `type: 'image'` on every attachment, so `media.type === 'video'` never held and Botsab always got an image campaign. The upload-first change (previous entry) therefore never ran. `BotsabProvider.post()` now tells a video by file extension (`mp4`, `mov`, `m4v`, `webm`), the way the other providers do. Do not rely on `MediaContent.type` in providers.
+
+## 2026-10-25 — .mov (QuickTime) uploads as-is
+- `.mov` uploads (multipart, simple, URL import, public API stream) are accepted and stored unchanged; they no longer need the RunPod normalizer (which still converts them to mp4 when configured). `r2.uploader.ts` accepts `.mov`/`video/quicktime` always, and `.mov`/`.mp4` accept either sniffed brand.
+- New `isVideoPath()` (`libraries/helpers/src/utils/has.extension.ts`, mp4 or mov) replaces the `mp4`-only video checks in the editor, media library, previews and the providers. Use it instead of `hasExtension(path, 'mp4')`; `MediaContent.type` is always `'image'`.
+- Not changed: providers that hard-code `video/mp4` as the upload Content-Type (YouTube, Bluesky, TikTok) still send that header for a `.mov`. Platforms that cannot play the codec (e.g. HEVC) may reject it.

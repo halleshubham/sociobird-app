@@ -25,6 +25,7 @@ import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/s
 import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/temporal/temporal.heartbeat';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
+import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 
 const clientAndYoutube = () => {
   const client = new google.auth.OAuth2({
@@ -84,7 +85,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     if (items?.[0]?.length !== 1) {
       return 'You need one media';
     }
-    if ((firstItems?.[0]?.path?.indexOf?.('mp4') ?? -1) === -1) {
+    if (!isVideoPath(firstItems?.[0]?.path)) {
       return 'Item must be a video';
     }
     return true;

@@ -20,7 +20,7 @@ import {
 import dayjs from 'dayjs';
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
-import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 
 // Travels through the workflow history between postPending, checkPostStatus
 // and finalizePost - keep it small JSON (the media id and the pin content).
@@ -73,10 +73,10 @@ export class PinterestProvider
     string | true
   > {
     const isMp4 = firstItem?.find(
-      (item) => (item?.path?.indexOf?.('mp4') ?? -1) > -1
+      (item) => isVideoPath(item?.path)
     );
     const isPicture = firstItem?.find(
-      (item) => (item?.path?.indexOf?.('mp4') ?? -1) === -1
+      (item) => !isVideoPath(item?.path)
     );
     if ((firstItem?.length ?? 0) === 0) {
       return 'Requires at least one media';
@@ -93,7 +93,7 @@ export class PinterestProvider
 
     if (
       (firstItem?.length ?? 0) > 1 &&
-      firstItem?.every((p) => (p?.path?.indexOf?.('mp4') ?? -1) === -1)
+      firstItem?.every((p) => !isVideoPath(p?.path))
     ) {
       const loadAll = await Promise.all(
         firstItem?.map((p) => this.getImageDimensions(p?.path)) ?? []
@@ -277,10 +277,10 @@ export class PinterestProvider
   ): Promise<PostResponse[]> {
     let mediaId = '';
     const findMp4 = postDetails?.[0]?.media?.find((p) =>
-      hasExtension(p.path, 'mp4')
+      isVideoPath(p.path)
     );
     const picture = postDetails?.[0]?.media?.find(
-      (p) => !hasExtension(p.path, 'mp4')
+      (p) => !isVideoPath(p.path)
     );
 
     // Upload the video now; the processing wait moves to checkPostStatus and

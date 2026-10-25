@@ -19,7 +19,7 @@ import {
 } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/facebook.dto';
 import { DribbbleDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/dribbble.dto';
 import { Integration } from '@prisma/client';
-import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 
@@ -525,7 +525,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
       // can never re-publish the stories that already went out.
       const items = [];
       for (const media of firstPost?.media || []) {
-        if (hasExtension(media.path, 'mp4')) {
+        if (isVideoPath(media.path)) {
           const { video_id, upload_url } = await (
             await this.fetch(
               `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${id}/video_stories?upload_phase=start&access_token=${accessToken}`,
@@ -781,7 +781,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
 
     let finalId = '';
     let finalUrl = '';
-    if (hasExtension(firstPost?.media?.[0]?.path, 'mp4')) {
+    if (isVideoPath(firstPost?.media?.[0]?.path)) {
       const {
         id: videoId,
         permalink_url,

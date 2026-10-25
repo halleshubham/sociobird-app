@@ -19,6 +19,7 @@ import { Input } from '@gitroom/react/form/input';
 import { TiktokPreview } from '@gitroom/frontend/components/new-launch/providers/tiktok/tiktok.preview';
 import { TikTokMusicSelector } from '@gitroom/frontend/components/new-launch/providers/tiktok/tiktok.music';
 import { TikTokLocationSelector } from '@gitroom/frontend/components/new-launch/providers/tiktok/tiktok.location';
+import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 
 const TikTokSettings: FC<{
   values?: any;
@@ -32,7 +33,7 @@ const TikTokSettings: FC<{
   const isBusiness = integration?.identifier === 'tiktok-business';
 
   const isTitle = useMemo(() => {
-    return value?.[0]?.image?.some((p) => (p?.path?.indexOf?.('mp4') ?? -1) === -1);
+    return value?.[0]?.image?.some((p) => !isVideoPath(p?.path));
   }, [value]);
 
   const hasMedia = (value?.[0]?.image?.length ?? 0) > 0;

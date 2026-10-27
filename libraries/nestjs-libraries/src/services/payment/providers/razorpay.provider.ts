@@ -91,9 +91,11 @@ export class RazorpayProvider extends PaymentProviderAbstract {
       // trial subscription (future start_at) this is the ONLY event we get
       // until the trial ends, so it has to create the DB row too, or the
       // frontend's post-checkout poll would spin forever.
+      case 'subscription.charged':
+        await this.restoreFullPrice(entity);
+        return this.upsertSubscription(entity);
       case 'subscription.authenticated':
       case 'subscription.activated':
-      case 'subscription.charged':
       case 'subscription.updated':
         return this.upsertSubscription(entity);
       case 'subscription.cancelled':
@@ -102,6 +104,35 @@ export class RazorpayProvider extends PaymentProviderAbstract {
         return this.removeSubscription(entity);
       default:
         return { ok: true };
+    }
+  }
+
+  // A new-user offer subscription starts on the discounted plan. Once its
+  // first charge went through it has a billing cycle, so the change back to
+  // the full-price plan can be scheduled for the end of that cycle: only the
+  // first paid cycle is discounted. A failure only leaves the discounted
+  // price renewing, which is cheaper for the customer, never a double charge.
+  private async restoreFullPrice(entity: any) {
+    if (entity?.notes?.newUserDiscount !== 'true' || entity.has_scheduled_changes) {
+      return;
+    }
+
+    const { billing, period, currency } = entity.notes as {
+      billing: Billing;
+      period: Period;
+      currency?: RazorpayCurrency;
+    };
+    try {
+      const plan = await this.findOrCreatePlan(billing, period, currency || 'INR');
+      if (entity.plan_id === plan.id) {
+        return;
+      }
+      await razorpay.subscriptions.update(entity.id, {
+        plan_id: plan.id,
+        schedule_change_at: 'cycle_end',
+      });
+    } catch (err) {
+      // see above
     }
   }
 
@@ -290,8 +321,10 @@ export class RazorpayProvider extends PaymentProviderAbstract {
     // gate, which permanently flips false on this org's first subscription,
     // so it can't be replayed by cancelling and resubscribing). Subscription
     // starts on the discounted plan; the change back to full price is
-    // scheduled for cycle end right after creation, so only the first paid
-    // cycle is discounted.
+    // scheduled once the first charge went through (restoreFullPrice), as a
+    // subscription that has not been paid yet has no billing cycle to
+    // schedule a change at - switching it right away made checkout charge
+    // the full price.
     const initialPlan = allowTrial
       ? await this.findOrCreateDiscountedPlan(body.billing, body.period, currency)
       : plan;
@@ -310,20 +343,9 @@ export class RazorpayProvider extends PaymentProviderAbstract {
         userId,
         uniqueId,
         id,
+        ...(allowTrial ? { newUserDiscount: 'true' } : {}),
       },
     });
-
-    if (allowTrial) {
-      try {
-        await razorpay.subscriptions.update(subscription.id, {
-          plan_id: plan.id,
-          schedule_change_at: 'cycle_end',
-        });
-      } catch (err) {
-        // Not fatal - worst case the discounted plan just keeps renewing at
-        // the discounted price, which fails safe (cheaper for us, not free).
-      }
-    }
 
     // Set immediately so cancel/lookup works even before the webhook lands.
     await this._subscriptionService.updateCustomerId(
@@ -518,6 +540,23 @@ export class RazorpayProvider extends PaymentProviderAbstract {
       const subscription = await razorpay.subscriptions.fetch(org.paymentId);
       if (['cancelled', 'expired', 'completed'].includes(subscription.status)) {
         return 1;
+      }
+
+      // The customer finished checkout (mandate registered or paid), so do not
+      // make the page wait for the webhook: record the subscription now, the
+      // webhook that follows does the same write.
+      if (
+        ['authenticated', 'active'].includes(subscription.status) &&
+        subscription.notes?.service === 'gitroom' &&
+        subscription.notes?.id === checkId
+      ) {
+        await this.upsertSubscription(subscription);
+        return (await this._subscriptionService.checkSubscription(
+          organizationId,
+          checkId
+        ))
+          ? 2
+          : 0;
       }
     } catch (err) {
       return 0;

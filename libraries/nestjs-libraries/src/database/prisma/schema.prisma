@@ -24,6 +24,8 @@ model Organization {
   // provider identifiers whose posts get their links removed before publishing
   stripLinksProviders String[]             @default([])
   stripLinksConfigured Boolean             @default(false)
+  // superadmin override of the plan's monthly allowance for providers that cost us per post (null: the plan decides)
+  meteredPostsOverride Int?
   autoPost            AutoPost[]
   Comments            Comments[]
   credits             Credits[]
@@ -930,6 +932,7 @@ enum State {
 }
 
 enum SubscriptionTier {
+  FREEPLAN
   STANDARD
   PRO
   TEAM

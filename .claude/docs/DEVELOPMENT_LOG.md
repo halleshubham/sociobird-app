@@ -131,7 +131,33 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 ## 2026-10-23 — Botsab video fix, second attempt (root cause)
 - `PostsService.updateMedia` sets `type: 'image'` on every attachment, so `media.type === 'video'` never held and Botsab always got an image campaign. The upload-first change (previous entry) therefore never ran. `BotsabProvider.post()` now tells a video by file extension (`mp4`, `mov`, `m4v`, `webm`), the way the other providers do. Do not rely on `MediaContent.type` in providers.
 
+## 2026-10-27 — Pricing rework (part 1) and a free plan
+- Prices and limits (`pricing.ts`, `pricing.razorpay.ts`): Solo 5 channels $5 / ₹399, Team 15 channels $11 / ₹899, Agency 40 channels $21 / ₹1,799, Scale (100 channels) is contact-us in every currency (it used to be ₹9,999 self-serve in India). Yearly = 20% off. AI is off on every plan (`ai`, `image_generator`, image/video counts 0): AI is not offered for now.
+- New `FREEPLAN` tier (`SubscriptionTier` enum, additive): 2 channels, no AI, no team, no API. An organization with no plan sees the paywall (`FirstBillingComponent`) and can pick "continue with the Free plan", which calls `POST /billing/free-plan` (`SubscriptionService.startFreePlan`: a manual-style subscription row, placeholder `paymentId` cleared, `allowTrial` kept so the 7-day trial and 20% first-cycle offer still apply to the first paid plan). A later paid checkout replaces the row (same provider). Cancelling a paid plan still falls back to `FREE` (paywall).
+- `pricing.<tier>.label` is the plan name shown in the app (Solo / Team / Agency / Scale / Free).
+- Not done yet: 7-day media retention job (part 2); marketing site pricing and comparison pages.
 ## 2026-10-25 — .mov (QuickTime) uploads as-is
 - `.mov` uploads (multipart, simple, URL import, public API stream) are accepted and stored unchanged; they no longer need the RunPod normalizer (which still converts them to mp4 when configured). `r2.uploader.ts` accepts `.mov`/`video/quicktime` always, and `.mov`/`.mp4` accept either sniffed brand.
 - New `isVideoPath()` (`libraries/helpers/src/utils/has.extension.ts`, mp4 or mov) replaces the `mp4`-only video checks in the editor, media library, previews and the providers. Use it instead of `hasExtension(path, 'mp4')`; `MediaContent.type` is always `'image'`.
 - Not changed: providers that hard-code `video/mp4` as the upload Content-Type (YouTube, Bluesky, TikTok) still send that header for a `.mov`. Platforms that cannot play the codec (e.g. HEVC) may reject it.
+
+## 2026-10-27 — QAT feedback on the pricing branch
+- **New-user offer removed on Razorpay:** the 20% first-cycle discount is gone now that prices are lower. `RazorpayProvider.subscribe` always uses the normal plan (the 7-day trial stays), the discounted-plan helper is deleted, and the frontend offer flag is false when `DEFAULT_WEB_PAYMENT_PROVIDER=razorpay`. Stripe's coupon path is untouched. The old discounted plans stay in Razorpay unused.
+- **Redirect after payment kept loading:** the post-checkout poll only finished when the webhook had written the subscription row. `checkSubscription` now writes it itself as soon as Razorpay reports the subscription `authenticated` or `active` (same upsert the webhook does).
+- **Plan limits:** channels, webhooks, team members and posts per month are enforced on the server from the plan. The public API and MCP were only hidden in the UI (the API middleware accepted any subscription row, including the free plan); `PublicAuthMiddleware` now refuses plans whose `public_api` is false (the free plan).
+
+## 2026-10-28 — Prices lowered again (compete with PostStage)
+- INR 199 / 449 / 899 per month (Solo 5, Team 15, Agency 40 channels), yearly 1,910 / 4,310 / 8,630; USD 3 / 5 / 11, yearly 29 / 48 / 106. Chosen to undercut PostStage (₹499 for 15 channels, ₹999 for 30). Assumes about ₹5 per channel (media deleted after a week), 3% payment fees and ₹8.3k a month of fixed cost; break-even is about 12 Agency, 23 Team or 50 Solo customers. No customers had paid yet, so nothing needed migrating.
+
+## 2026-10-28 — X post allowance per plan
+- X bills us per post (about $0.015, $0.20 with a link), so X posting has a monthly allowance with the plan: Free 0, Solo 30, Team 100, Agency 300, Scale 1000 (`pricing.<tier>.metered_posts_per_month`). A post with a link counts 10 when links are not stripped (`meteredCost` on the provider; the generic mechanism is any provider that declares `meteredCost`).
+- Enforced in `PostsService.createPost` (`assertMeteredAllowance`, not for drafts): counts the posts and thread comments of the month (QUEUE or PUBLISHED, by publish date) and refuses with a 400 and a readable message when the new post goes over. Edits exclude the post's own rows. Self-hosted instances without a payment provider have no limit.
+- Superadmin override per organization: `Organization.meteredPostsOverride` (nullable, additive), set from the "Org options" modal (`PUT /admin/org-settings/metered-posts`, `null` goes back to the plan). Usage is shown there and on the billing page (`GET /posts/metered-usage`).
+- Not built: top-up packs (buy more X posts), counting by billing cycle (it is the calendar month).
+- Top-up packs (buy more X posts, credits that expire with the month) were built and then **not shipped**: the manual flow goes first. The code is on branch `feat/metered-top-up-packs` (one commit on top of the allowance work) for when someone asks.
+
+## 2026-10-28 — Review fixes on the pricing branch
+- The X allowance is checked for the whole request before anything is created (`createPost` → `assertMeteredAllowance`, month by month, one usage lookup per month), so a multi-channel post is never half created; check and create run under a short Redis lock per organization (`withMeteredLock`) so two parallel requests cannot both pass. `changeDate` (moving a post into another month) is checked the same way.
+- The free plan no longer counts as a paid subscription for the "same email, other account" block (`getUserWithActiveSubscriptionByEmail`), and `startFreePlan` clears the `paymentId` placeholder and restores `allowTrial` also when it fails halfway.
+- Billing UI: the usage line names the providers returned by `/posts/metered-usage`; the plan lists use `meteredPostsLabel` from `pricing.ts`.
+- Left alone on purpose (Stripe is not used): Stripe cannot upgrade a free-plan org, and Scale still carries a USD price in `pricing.ts` that only a Stripe-only instance would show.

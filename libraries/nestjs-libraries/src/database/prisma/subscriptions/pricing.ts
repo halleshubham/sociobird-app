@@ -1,9 +1,12 @@
 export interface PricingInnerInterface {
   current: string;
+  label: string;
   month_price: number;
   year_price: number;
   channel?: number;
   posts_per_month: number;
+  // monthly posts on providers that cost us per post (X)
+  metered_posts_per_month: number;
   team_members: boolean;
   community_features: boolean;
   featured_by_gitroom: boolean;
@@ -19,14 +22,44 @@ export interface PricingInnerInterface {
 export interface PricingInterface {
   [key: string]: PricingInnerInterface;
 }
+// AI features (writing assistant, image and video generation) are off on every
+// plan for now: they are not offered, so no plan promises them
+// How the posts of the providers that cost per post are named on the plans
+export const meteredPostsLabel = 'X (Twitter) posts';
+
 export const pricing: PricingInterface = {
+  // No plan chosen yet (and what an organization falls back to when a
+  // subscription ends): the app asks to pick a plan
   FREE: {
     current: 'FREE',
+    label: 'No plan',
     month_price: 0,
     year_price: 0,
     channel: 0,
     image_generation_count: 0,
     posts_per_month: 0,
+    metered_posts_per_month: 0,
+    team_members: false,
+    community_features: false,
+    featured_by_gitroom: false,
+    ai: false,
+    import_from_channels: false,
+    image_generator: false,
+    public_api: false,
+    webhooks: 0,
+    autoPost: false,
+    generate_videos: 0,
+  },
+  // The free plan: a manual-style subscription an organization starts itself
+  FREEPLAN: {
+    current: 'FREEPLAN',
+    label: 'Free',
+    month_price: 0,
+    year_price: 0,
+    channel: 2,
+    image_generation_count: 0,
+    posts_per_month: 1000000,
+    metered_posts_per_month: 0,
     team_members: false,
     community_features: false,
     featured_by_gitroom: false,
@@ -40,13 +73,15 @@ export const pricing: PricingInterface = {
   },
   STANDARD: {
     current: 'STANDARD',
-    month_price: 25,
-    year_price: 239,
+    label: 'Solo',
+    month_price: 3,
+    year_price: 29,
     channel: 5,
     posts_per_month: 1000000,
-    image_generation_count: 20,
+    metered_posts_per_month: 30,
+    image_generation_count: 0,
     team_members: false,
-    ai: true,
+    ai: false,
     community_features: false,
     featured_by_gitroom: false,
     import_from_channels: true,
@@ -54,60 +89,67 @@ export const pricing: PricingInterface = {
     public_api: true,
     webhooks: 2,
     autoPost: false,
-    generate_videos: 3,
+    generate_videos: 0,
   },
   TEAM: {
     current: 'TEAM',
-    month_price: 45,
-    year_price: 429,
-    channel: 10,
+    label: 'Team',
+    month_price: 5,
+    year_price: 48,
+    channel: 15,
     posts_per_month: 1000000,
-    image_generation_count: 100,
+    metered_posts_per_month: 100,
+    image_generation_count: 0,
     community_features: true,
     team_members: true,
     featured_by_gitroom: true,
-    ai: true,
+    ai: false,
     import_from_channels: true,
-    image_generator: true,
+    image_generator: false,
     public_api: true,
     webhooks: 10,
     autoPost: true,
-    generate_videos: 10,
+    generate_videos: 0,
   },
   PRO: {
     current: 'PRO',
-    month_price: 69,
-    year_price: 659,
-    channel: 30,
+    label: 'Agency',
+    month_price: 11,
+    year_price: 106,
+    channel: 40,
     posts_per_month: 1000000,
-    image_generation_count: 300,
+    metered_posts_per_month: 300,
+    image_generation_count: 0,
     community_features: true,
     team_members: true,
     featured_by_gitroom: true,
-    ai: true,
+    ai: false,
     import_from_channels: true,
-    image_generator: true,
+    image_generator: false,
     public_api: true,
     webhooks: 30,
     autoPost: true,
-    generate_videos: 30,
+    generate_videos: 0,
   },
+  // Custom pricing: no self-serve price in any currency, handled by contact
   ULTIMATE: {
     current: 'ULTIMATE',
+    label: 'Scale',
     month_price: 149,
     year_price: 1429,
     channel: 100,
     posts_per_month: 1000000,
-    image_generation_count: 500,
+    metered_posts_per_month: 1000,
+    image_generation_count: 0,
     community_features: true,
     team_members: true,
     featured_by_gitroom: true,
-    ai: true,
+    ai: false,
     import_from_channels: true,
-    image_generator: true,
+    image_generator: false,
     public_api: true,
     webhooks: 10000,
     autoPost: true,
-    generate_videos: 60,
+    generate_videos: 0,
   },
 };

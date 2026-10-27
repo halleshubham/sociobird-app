@@ -151,7 +151,7 @@ export class SubscriptionRepository {
     identifier: string,
     customerId: string,
     totalChannels: number,
-    billing: 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE',
+    billing: 'FREEPLAN' | 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE',
     period: 'MONTHLY' | 'YEARLY',
     cancelAt: number | null,
     code?: string,
@@ -301,6 +301,17 @@ export class SubscriptionRepository {
         createdAt: {
           gte: from.toDate(),
         },
+      },
+    });
+  }
+
+  setAllowTrial(orgId: string, allowTrial: boolean) {
+    return this._organization.model.organization.update({
+      where: {
+        id: orgId,
+      },
+      data: {
+        allowTrial,
       },
     });
   }

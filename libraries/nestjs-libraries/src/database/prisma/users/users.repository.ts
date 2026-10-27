@@ -142,7 +142,10 @@ export class UsersRepository {
           some: {
             role: Role.SUPERADMIN,
             organization: {
-              subscription: { is: { deletedAt: null } },
+              // the free plan is not a paid subscription
+              subscription: {
+                is: { deletedAt: null, subscriptionTier: { not: 'FREEPLAN' } },
+              },
             },
           },
         },

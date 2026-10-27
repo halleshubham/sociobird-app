@@ -11,7 +11,10 @@ import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import dayjs from 'dayjs';
 import clsx from 'clsx';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import {
+  meteredPostsLabel,
+  pricing,
+} from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import {
   pricingINR,
   pricingUSD,
@@ -19,7 +22,7 @@ import {
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing.razorpay';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
 import { BillingHistory } from '@gitroom/frontend/components/billing/billing.history.component';
-import { useSWRConfig } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -122,6 +125,11 @@ export const Features: FC<{
           : currentPricing.posts_per_month
       } posts per month`
     );
+    if (currentPricing.metered_posts_per_month) {
+      list.push(
+        `${currentPricing.metered_posts_per_month} ${meteredPostsLabel} per month`
+      );
+    }
     if (currentPricing.team_members) {
       list.push(`Unlimited team members`);
     }
@@ -239,6 +247,33 @@ const Info: FC<{
     </div>
   );
 };
+const useMeteredUsage = () => {
+  const fetch = useFetch();
+  return useSWR<{
+    providers: string[];
+    names: string[];
+    used: number;
+    limit: number | null;
+  }>('/posts/metered-usage', async () => {
+    return (await fetch('/posts/metered-usage')).json();
+  });
+};
+
+const MeteredUsage: FC = () => {
+  const t = useT();
+  const { data } = useMeteredUsage();
+  if (!data?.providers?.length || data.limit === null) {
+    return null;
+  }
+
+  return (
+    <div className="text-[14px] opacity-80">
+      {data.names.join(', ')} {t('metered_usage_this_month', 'posts this month:')}{' '}
+      {data.used} {t('metered_posts_of', 'of')} {data.limit}
+    </div>
+  );
+};
+
 export const MainBillingComponent: FC<{
   sub?: SubscriptionWithPlatform;
 }> = (props) => {
@@ -260,12 +295,14 @@ export const MainBillingComponent: FC<{
   const currencySymbol = selectedCurrency === 'inr' ? '₹' : '$';
   const getPrice = useCallback(
     (tier: string, period: 'month_price' | 'year_price') => {
-      if (selectedCurrency === 'inr' && tier in pricingINR) {
-        return pricingINR[tier as keyof typeof pricingINR][period];
+      if (selectedCurrency === 'inr') {
+        // ULTIMATE has no self-serve price - contact-us only, same as the
+        // marketing site's "Scale" tier.
+        return tier in pricingINR
+          ? pricingINR[tier as keyof typeof pricingINR][period]
+          : null;
       }
       if (hasCurrencyChoice && selectedCurrency === 'usd') {
-        // ULTIMATE has no self-serve USD price - contact-us only, same as
-        // the marketing site's "Scale" tier.
         return tier in pricingUSD
           ? pricingUSD[tier as keyof typeof pricingUSD][period]
           : null;
@@ -586,6 +623,7 @@ export const MainBillingComponent: FC<{
   }
   return (
     <div className="flex flex-col gap-[16px]">
+      <MeteredUsage />
       <div className="flex flex-row">
         <div className="flex-1 text-[20px]">{t('plans', 'Plans')}</div>
         {hasCurrencyChoice && (
@@ -609,7 +647,7 @@ export const MainBillingComponent: FC<{
       {finishTrial && <FinishTrial close={() => setFinishTrial(false)} />}
       <div className="flex gap-[16px] [@media(max-width:1024px)]:flex-col [@media(max-width:1024px)]:text-center">
         {Object.entries(pricing)
-          .filter((f) => !isGeneral || f[0] !== 'FREE')
+          .filter((f) => f[0] !== 'FREEPLAN' && (!isGeneral || f[0] !== 'FREE'))
           .map(([name, values]) => {
             const fullPrice = getPrice(
               name,
@@ -638,7 +676,7 @@ export const MainBillingComponent: FC<{
                   {NEW_USER_DISCOUNT_PERCENT}% {t('off_first_cycle', 'off first cycle')}
                 </div>
               )}
-              <div className="text-[18px]">{name}</div>
+              <div className="text-[18px]">{values.label}</div>
               <div className="text-[38px] flex gap-[6px] items-center">
                 {isContactUsOnly ? (
                   <div>{t('custom_pricing', 'Custom')}</div>
@@ -713,6 +751,7 @@ export const MainBillingComponent: FC<{
                         : 'Cancel subscription'
                       : // @ts-ignore
                       (user?.tier === 'FREE' ||
+                          user?.tier?.current === 'FREEPLAN' ||
                           user?.tier?.current === 'FREE') &&
                         user.allowTrial
                       ? t('start_7_days_free_trial', 'Start 7 days free trial')

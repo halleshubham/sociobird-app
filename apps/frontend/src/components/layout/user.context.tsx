@@ -24,7 +24,7 @@ export const UserContext = createContext<
 export const ContextWrapper: FC<{
   user: User & {
     orgId: string;
-    tier: 'FREE' | 'STANDARD' | 'PRO' | 'ULTIMATE' | 'TEAM';
+    tier: 'FREE' | 'FREEPLAN' | 'STANDARD' | 'PRO' | 'ULTIMATE' | 'TEAM';
     role: 'USER' | 'ADMIN' | 'SUPERADMIN';
     publicApi: string;
     totalChannels: number;

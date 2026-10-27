@@ -26,7 +26,10 @@ import { PostPlug } from '@gitroom/helpers/decorators/post.plug';
 import dayjs from 'dayjs';
 import { uniqBy } from 'lodash';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
-import { stripLinks as removeLinks } from '@gitroom/helpers/utils/strip.links';
+import {
+  hasLinks,
+  stripLinks as removeLinks,
+} from '@gitroom/helpers/utils/strip.links';
 import { XDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/x.dto';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
@@ -77,6 +80,9 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   scopes = [] as string[];
   stripLinks = () => !!process.env.STRIP_LINKS_FROM_X_POSTS;
   stripLinksByDefault = () => true;
+  // X bills a post with a link at 10 times a plain post
+  meteredCost = (content: string, linksStripped: boolean) =>
+    !linksStripped && hasLinks(content) ? 10 : 1;
   // X rate limits are per user (300 posts / 3 hours), not per app, so the cap
   // only needs to keep bursts polite. With the pending flow the slot is held
   // for actual API work only (processing waits live in workflow timers), so a

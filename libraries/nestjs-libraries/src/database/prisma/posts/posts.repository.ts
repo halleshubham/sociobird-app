@@ -34,6 +34,45 @@ export class PostsRepository {
     private _organization: PrismaRepository<'organization'>
   ) {}
 
+  async getMeteredAllowance(organizationId: string) {
+    const org = await this._organization.model.organization.findUnique({
+      where: { id: organizationId },
+      select: {
+        meteredPostsOverride: true,
+        subscription: { select: { subscriptionTier: true } },
+      },
+    });
+
+    return {
+      override: org?.meteredPostsOverride ?? null,
+      tier: org?.subscription?.subscriptionTier || 'FREE',
+    };
+  }
+
+  // The posts (and thread comments) a month of publishing on the providers that cost per post
+  getMeteredPosts(
+    organizationId: string,
+    providerIdentifiers: string[],
+    from: Date,
+    to: Date,
+    excludeIds: string[] = []
+  ) {
+    return this._post.model.post.findMany({
+      where: {
+        organizationId,
+        publishDate: { gte: from, lt: to },
+        deletedAt: null,
+        state: { in: ['QUEUE', 'PUBLISHED'] },
+        integration: { providerIdentifier: { in: providerIdentifiers } },
+        ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+      },
+      select: {
+        content: true,
+        integration: { select: { providerIdentifier: true } },
+      },
+    });
+  }
+
   async getStripLinksProviders(organizationId: string) {
     const org = await this._organization.model.organization.findUnique({
       where: { id: organizationId },

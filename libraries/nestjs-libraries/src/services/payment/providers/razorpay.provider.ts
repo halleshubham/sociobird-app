@@ -10,8 +10,8 @@ import { BillingSubscribeDto } from '@gitroom/nestjs-libraries/dtos/billing/bill
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import {
   LIFETIME_PRO_PRICE_INR,
-  NEW_USER_DISCOUNT_PERCENT,
   getRazorpayPricing,
+  hasRazorpayPricing,
   RazorpayCurrency,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing.razorpay';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
@@ -192,48 +192,6 @@ export class RazorpayProvider extends PaymentProviderAbstract {
     });
   }
 
-  // New-user signup offer: Razorpay has no per-invoice discount API like
-  // Stripe's coupons, so the discount is a separate plan at the reduced
-  // amount - the subscription starts on this plan, then subscribe()
-  // schedules a change back to the full-price plan for cycle end, so only
-  // the first paid cycle is discounted.
-  private async findOrCreateDiscountedPlan(
-    billing: Billing,
-    period: Period,
-    currency: RazorpayCurrency
-  ) {
-    const pricingRow = getRazorpayPricing(billing, currency);
-    const fullAmount =
-      period === 'MONTHLY' ? pricingRow.month_price : pricingRow.year_price;
-    const amount = Math.round(
-      (fullAmount * (100 - NEW_USER_DISCOUNT_PERCENT)) / 100
-    );
-
-    const existing = await razorpay.plans.all({ count: 100 });
-    const found = (existing.items || []).find(
-      (p: any) =>
-        p.notes?.billing === billing &&
-        p.notes?.period === period &&
-        p.notes?.currency === currency &&
-        p.notes?.newUserDiscount === 'true' &&
-        p.item?.amount === amount * 100
-    );
-    if (found) {
-      return found;
-    }
-
-    return razorpay.plans.create({
-      period: period === 'MONTHLY' ? 'monthly' : 'yearly',
-      interval: 1,
-      item: {
-        name: `${billing} ${period} (${currency}, new user offer)`,
-        amount: amount * 100, // paise, or cents for USD
-        currency,
-      },
-      notes: { billing, period, currency, newUserDiscount: 'true' },
-    });
-  }
-
   async subscribe(
     uniqueId: string,
     organizationId: string,
@@ -243,9 +201,9 @@ export class RazorpayProvider extends PaymentProviderAbstract {
   ) {
     const id = makeId(10);
     const currency: RazorpayCurrency = body.currency || 'INR';
-    if (currency === 'USD' && body.billing === 'ULTIMATE') {
+    if (!hasRazorpayPricing(body.billing, currency)) {
       throw new HttpException(
-        'The Scale plan is contact-us only in USD - reach out to support@shackyapps.in',
+        'The Scale plan is custom priced - reach out to support@shackyapps.in',
         400
       );
     }
@@ -285,18 +243,8 @@ export class RazorpayProvider extends PaymentProviderAbstract {
       ? Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
       : undefined;
 
-    // New-user signup offer applies alongside the trial (same `allowTrial`
-    // gate, which permanently flips false on this org's first subscription,
-    // so it can't be replayed by cancelling and resubscribing). Subscription
-    // starts on the discounted plan; the change back to full price is
-    // scheduled for cycle end right after creation, so only the first paid
-    // cycle is discounted.
-    const initialPlan = allowTrial
-      ? await this.findOrCreateDiscountedPlan(body.billing, body.period, currency)
-      : plan;
-
     const subscription = await razorpay.subscriptions.create({
-      plan_id: initialPlan.id,
+      plan_id: plan.id,
       total_count: TOTAL_COUNT[body.period],
       customer_notify: 1,
       ...(startAt ? { start_at: startAt } : {}),
@@ -311,18 +259,6 @@ export class RazorpayProvider extends PaymentProviderAbstract {
         id,
       },
     });
-
-    if (allowTrial) {
-      try {
-        await razorpay.subscriptions.update(subscription.id, {
-          plan_id: plan.id,
-          schedule_change_at: 'cycle_end',
-        });
-      } catch (err) {
-        // Not fatal - worst case the discounted plan just keeps renewing at
-        // the discounted price, which fails safe (cheaper for us, not free).
-      }
-    }
 
     // Set immediately so cancel/lookup works even before the webhook lands.
     await this._subscriptionService.updateCustomerId(
@@ -362,10 +298,17 @@ export class RazorpayProvider extends PaymentProviderAbstract {
     // already billed in - switching currency isn't a supported flow here.
     const currency = (currentSubscription.currency as RazorpayCurrency) || 'INR';
     const priceKey = body.period === 'MONTHLY' ? 'month_price' : 'year_price';
-    const currentPrice =
-      getRazorpayPricing(currentSubscription.subscriptionTier as Billing, currency)?.[
-        priceKey
-      ] || 0;
+    const currentPrice = hasRazorpayPricing(
+      currentSubscription.subscriptionTier,
+      currency
+    )
+      ? getRazorpayPricing(currentSubscription.subscriptionTier, currency)[
+          priceKey
+        ]
+      : 0;
+    if (!hasRazorpayPricing(body.billing, currency)) {
+      return { price: false };
+    }
     const newPrice = getRazorpayPricing(body.billing, currency)[priceKey];
 
     const cycleStart = razorpaySubscription.current_start;
@@ -510,6 +453,23 @@ export class RazorpayProvider extends PaymentProviderAbstract {
       const subscription = await razorpay.subscriptions.fetch(org.paymentId);
       if (['cancelled', 'expired', 'completed'].includes(subscription.status)) {
         return 1;
+      }
+
+      // The customer finished checkout (mandate registered or paid), so do not
+      // make the page wait for the webhook: record the subscription now, the
+      // webhook that follows does the same write.
+      if (
+        ['authenticated', 'active'].includes(subscription.status) &&
+        subscription.notes?.service === 'gitroom' &&
+        subscription.notes?.id === checkId
+      ) {
+        await this.upsertSubscription(subscription);
+        return (await this._subscriptionService.checkSubscription(
+          organizationId,
+          checkId
+        ))
+          ? 2
+          : 0;
       }
     } catch (err) {
       return 0;

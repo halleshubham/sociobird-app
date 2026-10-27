@@ -96,7 +96,7 @@ existing activity's parameters; add a new activity. Example already in the tree:
 
 - Tiers in code: `STANDARD`, `TEAM`, `PRO`, `ULTIMATE`. Shown to customers as **Solo, Team, Agency, Scale**.
 - Limits and feature flags: `database/prisma/subscriptions/pricing.ts` (channels, `team_members`, `autoPost`, `image_generator`,
-  `webhooks`, `public_api`, ...). INR prices: `pricing.razorpay.ts` (799 / 1999 / 4999 / 9999 per month). USD: 9 / 19 / 49 and custom for Scale.
+  `webhooks`, `public_api`, ...). INR prices: `pricing.razorpay.ts` (199 / 449 / 899 per month). USD: 3 / 5 / 11. Scale (`ULTIMATE`) has no self-serve price in any currency (contact us). Plans: Free (`FREEPLAN`, 2 channels), Solo (`STANDARD`, 5), Team (`TEAM`, 15), Agency (`PRO`, 40), Scale (`ULTIMATE`, 100, custom). `FREE` is not a plan: it means "no plan chosen" and shows the paywall.
 - `Organization.paymentId` is **the payment provider's key for the org's subscription**. For Razorpay it is the Razorpay *subscription id* (every cancel/update/fetch uses it);
   for Stripe it is the customer id. A manual (admin-granted) subscription parks a placeholder there (the user's id). See OPERATIONS.md, "Manual subscriptions".
 - **The plan cards on sociobird.app are hand-copied** (`sociobird-site/index.html` and `global.html`, `PLANS` array).

@@ -125,6 +125,12 @@ export class PostsController {
     return this._postsService.getPostsMinified(org.id, query);
   }
 
+  // This month's posts on the providers that cost per post, against the allowance
+  @Get('/metered-usage')
+  meteredUsage(@GetOrgFromRequest() org: Organization) {
+    return this._postsService.meteredUsage(org.id);
+  }
+
   @Get('/find-slot')
   async findSlot(@GetOrgFromRequest() org: Organization) {
     return { date: await this._postsService.findFreeDateTime(org.id) };

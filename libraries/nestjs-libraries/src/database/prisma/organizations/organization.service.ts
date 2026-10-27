@@ -1,3 +1,4 @@
+import { emailButton } from '@gitroom/nestjs-libraries/emails/email.layout';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { HttpException, Injectable } from '@nestjs/common';
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
@@ -117,7 +118,10 @@ export class OrganizationService {
       await this._notificationsService.sendEmail(
         body.email,
         `${user.name || user.email} invited you to join "${org.name}"`,
-        `${inviter} has invited you to join the "${org.name}" team.<br /><a href="${url}">Accept the invitation</a> to get started.<br />The link will expire in 2 days.`
+        `<p>${inviter} has invited you to join the "${org.name}" team.</p>${emailButton(
+          url,
+          'Accept the invitation'
+        )}<p>The link will expire in 2 days.</p>`
       );
     }
     return { url };

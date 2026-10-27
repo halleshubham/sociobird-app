@@ -64,7 +64,7 @@ export const pricing: PricingInterface = {
   },
   STANDARD: {
     current: 'STANDARD',
-    label: 'Starter',
+    label: 'Solo',
     month_price: 5,
     year_price: 48,
     channel: 5,
@@ -83,7 +83,7 @@ export const pricing: PricingInterface = {
   },
   TEAM: {
     current: 'TEAM',
-    label: 'Growth',
+    label: 'Team',
     month_price: 11,
     year_price: 106,
     channel: 15,
@@ -102,7 +102,7 @@ export const pricing: PricingInterface = {
   },
   PRO: {
     current: 'PRO',
-    label: 'Pro',
+    label: 'Agency',
     month_price: 21,
     year_price: 202,
     channel: 40,

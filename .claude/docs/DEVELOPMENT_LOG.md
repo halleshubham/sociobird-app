@@ -130,3 +130,9 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ## 2026-10-23 — Botsab video fix, second attempt (root cause)
 - `PostsService.updateMedia` sets `type: 'image'` on every attachment, so `media.type === 'video'` never held and Botsab always got an image campaign. The upload-first change (previous entry) therefore never ran. `BotsabProvider.post()` now tells a video by file extension (`mp4`, `mov`, `m4v`, `webm`), the way the other providers do. Do not rely on `MediaContent.type` in providers.
+
+## 2026-10-27 — Pricing rework (part 1) and a free plan
+- Prices and limits (`pricing.ts`, `pricing.razorpay.ts`): Solo 5 channels $5 / ₹399, Team 15 channels $11 / ₹899, Agency 40 channels $21 / ₹1,799, Scale (100 channels) is contact-us in every currency (it used to be ₹9,999 self-serve in India). Yearly = 20% off. AI image/video counts per plan reduced (Solo 10/0, Team 40/2, Agency 120/5).
+- New `FREEPLAN` tier (`SubscriptionTier` enum, additive): 2 channels, no AI, no team, no API. An organization with no plan sees the paywall (`FirstBillingComponent`) and can pick "continue with the Free plan", which calls `POST /billing/free-plan` (`SubscriptionService.startFreePlan`: a manual-style subscription row, placeholder `paymentId` cleared, `allowTrial` kept so the 7-day trial and 20% first-cycle offer still apply to the first paid plan). A later paid checkout replaces the row (same provider). Cancelling a paid plan still falls back to `FREE` (paywall).
+- `pricing.<tier>.label` is the plan name shown in the app (Solo / Team / Agency / Scale / Free).
+- Not done yet: 7-day media retention job (part 2); marketing site pricing and comparison pages.

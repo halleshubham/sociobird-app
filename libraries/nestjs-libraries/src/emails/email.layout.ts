@@ -51,6 +51,8 @@ export const emailLayout = (params: {
       .content, .content p { color: #d1d5db !important; }
       .footer, .footer a { color: #9ca3af !important; }
       .rule { border-top-color: #2a2e3a !important; }
+      .logo-light { display: none !important; }
+      .logo-dark { display: block !important; }
       .content a, .card a { color: #a78bfa !important; }
       .footer a { color: #9ca3af !important; }
     }
@@ -64,7 +66,12 @@ export const emailLayout = (params: {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px;">
           <tr>
             <td class="brand" style="padding: 0 4px 16px; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 700; color: #111827;">
-              <span style="color: ${BRAND_COLOR};">&#9679;</span>&nbsp;${escapeHtml(brand)}
+              <a href="${frontendUrl}" target="_blank" style="text-decoration: none;">
+                <img class="logo-light" src="${frontendUrl}/logo-full.png" alt="${escapeHtml(
+                  brand
+                )}" height="36" style="display: block; border: 0; height: 36px; width: auto;" />
+                <img class="logo-dark" src="${frontendUrl}/logo-full-light.png" alt="" height="36" style="display: none; border: 0; height: 36px; width: auto;" />
+              </a>
             </td>
           </tr>
           <tr>

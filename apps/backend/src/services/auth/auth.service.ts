@@ -1,3 +1,4 @@
+import { emailButton } from '@gitroom/nestjs-libraries/emails/email.layout';
 import { Injectable } from '@nestjs/common';
 import { Provider, User } from '@prisma/client';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
@@ -76,7 +77,10 @@ export class AuthService {
         await this._emailService.sendEmail(
           body.email,
           'Activate your account',
-          `Click <a href="${process.env.FRONTEND_URL}/auth/activate/${obj.jwt}">here</a> to activate your account`,
+          `<p>Welcome! Confirm your email address to finish creating your account.</p>${emailButton(
+            `${process.env.FRONTEND_URL}/auth/activate/${obj.jwt}`,
+            'Activate my account'
+          )}`,
           'top'
         );
         return obj;
@@ -228,7 +232,10 @@ export class AuthService {
     await this._notificationService.sendEmail(
       user.email,
       'Reset your password',
-      `You have requested to reset your password. <br />Click <a href="${process.env.FRONTEND_URL}/auth/forgot/${resetValues}">here</a> to reset your password<br />The link will expire in 20 minutes`
+      `<p>You have requested to reset your password.</p>${emailButton(
+        `${process.env.FRONTEND_URL}/auth/forgot/${resetValues}`,
+        'Reset my password'
+      )}<p>The link will expire in 20 minutes. If you did not ask for this, you can ignore this email.</p>`
     );
   }
 
@@ -281,7 +288,10 @@ export class AuthService {
     await this._emailService.sendEmail(
       user.email,
       'Activate your account',
-      `Click <a href="${process.env.FRONTEND_URL}/auth/activate/${jwt}">here</a> to activate your account`,
+      `<p>Confirm your email address to finish creating your account.</p>${emailButton(
+        `${process.env.FRONTEND_URL}/auth/activate/${jwt}`,
+        'Activate my account'
+      )}`,
       'top'
     );
 

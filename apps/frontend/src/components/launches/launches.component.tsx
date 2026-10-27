@@ -610,7 +610,9 @@ export const LaunchesComponent = () => {
         '*'
       );
     }
-    if (window.opener) {
+    // only the popup that connects a channel closes itself; a tab opened from
+    // a mail or another site (the account activation link) also has an opener
+    if (window.opener && (search.get('added') || search.get('msg'))) {
       window.close();
     }
   }, []);

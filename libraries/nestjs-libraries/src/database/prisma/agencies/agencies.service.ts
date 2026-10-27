@@ -1,3 +1,4 @@
+import { emailButton } from '@gitroom/nestjs-libraries/emails/email.layout';
 import { Injectable } from '@nestjs/common';
 import { AgenciesRepository } from '@gitroom/nestjs-libraries/database/prisma/agencies/agencies.repository';
 import { User } from '@prisma/client';
@@ -38,22 +39,10 @@ export class AgenciesService {
       await this._notificationService.sendEmail(
         agency?.user?.email!,
         'Your Agency has been approved and added to SocioBird 🚀',
-        `
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Agency has been approved and added to SocioBird 🚀</title>
-</head>
-
-<body style="font-family: Arial, sans-serif; margin: 0; padding: 0;">
-  Hi there, <br /><br />
-  Your agency ${agency?.name} has been added to SocioBird!<br />
-  You can <a href="${process.env.FRONTEND_URL}/agencies/${agency?.slug}">check it here</a><br />
-  It will appear on the main agency of SocioBird in the next 24 hours.<br /><br />
-</body>
-</html>`
+        `<p>Hi there,</p><p>Your agency ${agency?.name} has been added to SocioBird!</p><p>It will appear on the main agency of SocioBird in the next 24 hours.</p>${emailButton(
+          `${process.env.FRONTEND_URL}/agencies/${agency?.slug}`,
+          'See your agency'
+        )}`
       );
 
       return;
@@ -62,21 +51,7 @@ export class AgenciesService {
     await this._notificationService.sendEmail(
       agency?.user?.email!,
       'Your Agency has been declined 😔',
-      `
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Agency has been declined</title>
-</head>
-
-<body style="font-family: Arial, sans-serif; margin: 0; padding: 0;">
-  Hi there, <br /><br />
-  Your agency ${agency?.name} has been declined to SocioBird!<br />
-  If you think we have made a mistake, please reply to this email and let us know
-</body>
-</html>`
+      `<p>Hi there,</p><p>Your agency ${agency?.name} has been declined for SocioBird.</p><p>If you think we have made a mistake, please reply to this email and let us know.</p>`
     );
 
     return;

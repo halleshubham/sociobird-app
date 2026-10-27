@@ -9,7 +9,10 @@ import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/se
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
 import dynamic from 'next/dynamic';
 import { LogoTextComponent } from '@gitroom/frontend/components/ui/logo-text.component';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import {
+  meteredPostsLabel,
+  pricing,
+} from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import {
   pricingINR,
   pricingUSD,
@@ -529,7 +532,7 @@ export const BillingFeatures: FC<{ tier: string }> = ({ tier }) => {
     if (currentPricing.metered_posts_per_month) {
       list.push({
         key: 'billing_metered_posts_per_month',
-        defaultValue: 'X (Twitter) posts per month',
+        defaultValue: `${meteredPostsLabel} per month`,
         prefix: currentPricing.metered_posts_per_month,
       });
     }

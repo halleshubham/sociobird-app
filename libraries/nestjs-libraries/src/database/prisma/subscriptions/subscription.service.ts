@@ -458,10 +458,14 @@ export class SubscriptionService {
     // the first paid plan, not to the free one
     const allowTrial = (await this._organizationService.getOrgById(orgId))
       ?.allowTrial;
-    await this.addSubscription(orgId, userId, 'FREEPLAN', provider);
-    await this._subscriptionRepository.setCustomerId(orgId, null);
-    if (allowTrial) {
-      await this._subscriptionRepository.setAllowTrial(orgId, true);
+    try {
+      await this.addSubscription(orgId, userId, 'FREEPLAN', provider);
+    } finally {
+      // addSubscription parks the user id in org.paymentId, also when it fails halfway
+      await this._subscriptionRepository.setCustomerId(orgId, null);
+      if (allowTrial) {
+        await this._subscriptionRepository.setAllowTrial(orgId, true);
+      }
     }
     return { tier: 'FREEPLAN' };
   }

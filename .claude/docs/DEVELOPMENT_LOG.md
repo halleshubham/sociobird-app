@@ -155,3 +155,9 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 - Superadmin override per organization: `Organization.meteredPostsOverride` (nullable, additive), set from the "Org options" modal (`PUT /admin/org-settings/metered-posts`, `null` goes back to the plan). Usage is shown there and on the billing page (`GET /posts/metered-usage`).
 - Not built: top-up packs (buy more X posts), counting by billing cycle (it is the calendar month).
 - Top-up packs (buy more X posts, credits that expire with the month) were built and then **not shipped**: the manual flow goes first. The code is on branch `feat/metered-top-up-packs` (one commit on top of the allowance work) for when someone asks.
+
+## 2026-10-28 — Review fixes on the pricing branch
+- The X allowance is checked for the whole request before anything is created (`createPost` → `assertMeteredAllowance`, month by month, one usage lookup per month), so a multi-channel post is never half created; check and create run under a short Redis lock per organization (`withMeteredLock`) so two parallel requests cannot both pass. `changeDate` (moving a post into another month) is checked the same way.
+- The free plan no longer counts as a paid subscription for the "same email, other account" block (`getUserWithActiveSubscriptionByEmail`), and `startFreePlan` clears the `paymentId` placeholder and restores `allowTrial` also when it fails halfway.
+- Billing UI: the usage line names the providers returned by `/posts/metered-usage`; the plan lists use `meteredPostsLabel` from `pricing.ts`.
+- Left alone on purpose (Stripe is not used): Stripe cannot upgrade a free-plan org, and Scale still carries a USD price in `pricing.ts` that only a Stripe-only instance would show.

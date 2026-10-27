@@ -678,6 +678,9 @@ export class PostsService {
 
     return {
       providers,
+      names: providers.map(
+        (identifier) => this._integrationManager.getSocialIntegration(identifier).name
+      ),
       used,
       planLimit,
       override,
@@ -685,36 +688,92 @@ export class PostsService {
     };
   }
 
+  // What a request adds to the monthly allowance, month by month. The whole
+  // request is checked before anything is created or moved
   private async assertMeteredAllowance(
     orgId: string,
-    providerIdentifier: string,
-    contents: string[],
-    date: Date | string,
-    excludeIds: string[]
+    items: {
+      identifier: string;
+      contents: string[];
+      ids: string[];
+      date: Date | string;
+    }[]
   ) {
-    const provider =
-      this._integrationManager.getSocialIntegration(providerIdentifier);
-    if (!provider?.meteredCost) {
-      return;
+    const months = new Map<string, typeof items>();
+    for (const item of items) {
+      if (
+        !this._integrationManager.getSocialIntegration(item.identifier)
+          ?.meteredCost
+      ) {
+        continue;
+      }
+      const key = dayjs(item.date).format('YYYY-MM');
+      months.set(key, [...(months.get(key) || []), item]);
     }
 
-    const usage = await this.meteredUsage(orgId, date, excludeIds);
-    if (usage.limit === null) {
-      return;
-    }
-
-    const stripped = await this.linksAreStripped(orgId, providerIdentifier);
-    const adds = contents.reduce(
-      (sum, content) => sum + provider.meteredCost!(content, stripped),
-      0
-    );
-    if (usage.used + adds > usage.limit) {
-      throw new BadRequestException(
-        usage.limit === 0
-          ? `${provider.name} posting is not included in your plan, please upgrade`
-          : `${provider.name} post allowance reached: ${usage.used} of ${usage.limit} posts used in ${dayjs(date).format('MMMM')}, this post needs ${adds} more. Upgrade your plan or contact support.`
+    for (const monthItems of months.values()) {
+      const date = monthItems[0].date;
+      const usage = await this.meteredUsage(
+        orgId,
+        date,
+        monthItems.flatMap((item) => item.ids)
       );
+      if (usage.limit === null) {
+        continue;
+      }
+
+      let adds = 0;
+      for (const item of monthItems) {
+        const provider = this._integrationManager.getSocialIntegration(
+          item.identifier
+        );
+        const stripped = await this.linksAreStripped(orgId, item.identifier);
+        adds += item.contents.reduce(
+          (sum, content) => sum + provider.meteredCost!(content, stripped),
+          0
+        );
+      }
+
+      if (usage.used + adds > usage.limit) {
+        const names = [
+          ...new Set(
+            monthItems.map(
+              (item) =>
+                this._integrationManager.getSocialIntegration(item.identifier)
+                  .name
+            )
+          ),
+        ].join(', ');
+        throw new BadRequestException(
+          usage.limit === 0
+            ? `${names} posting is not included in your plan, please upgrade`
+            : `${names} post allowance reached: ${usage.used} of ${usage.limit} posts used in ${dayjs(date).format('MMMM')}, this needs ${adds} more. Upgrade your plan or contact support.`
+        );
+      }
     }
+  }
+
+  // Check and create have to happen one after the other, or two requests at
+  // the same time could both pass the check
+  private async withMeteredLock<T>(
+    orgId: string,
+    run: () => Promise<T>
+  ): Promise<T> {
+    const key = `metered-lock:${orgId}`;
+    for (let attempt = 0; attempt < 50; attempt++) {
+      if (await ioRedis.set(key, '1', 'EX', 30, 'NX')) {
+        try {
+          return await run();
+        } finally {
+          await ioRedis.del(key);
+        }
+      }
+      await timer(200);
+    }
+
+    throw new BadRequestException(
+      'Another post is being saved for this organization, please try again'
+    );
   }
 
   public async removeLinksWhenRequested(
@@ -1077,6 +1136,40 @@ export class PostsService {
     creationMethod: CreationMethod,
     keepGroup = false
   ): Promise<any[]> {
+    const metered =
+      body.type === 'draft'
+        ? []
+        : body.posts
+            .map((post) => ({
+              identifier: (post.settings as any)?.__type as string,
+              contents: (post.value || []).map((p) => p.content),
+              ids: (post.value || []).map((p) => p.id).filter((id) => !!id),
+              date: (body.type === 'now'
+                ? new Date()
+                : post.date || body.date) as Date | string,
+            }))
+            .filter(
+              (item) =>
+                !!this._integrationManager.getSocialIntegration(item.identifier)
+                  ?.meteredCost
+            );
+
+    if (!metered.length) {
+      return this.createPostItems(orgId, body, creationMethod, keepGroup);
+    }
+
+    return this.withMeteredLock(orgId, async () => {
+      await this.assertMeteredAllowance(orgId, metered);
+      return this.createPostItems(orgId, body, creationMethod, keepGroup);
+    });
+  }
+
+  private async createPostItems(
+    orgId: string,
+    body: CreatePostDto,
+    creationMethod: CreationMethod,
+    keepGroup = false
+  ): Promise<any[]> {
     const postList = [];
     const batchId = uuidv4();
     for (const post of body.posts) {
@@ -1109,16 +1202,6 @@ export class PostsService {
         ...p,
         content: removeLinks ? stripLinks(updateContent[i]) : updateContent[i],
       }));
-
-      if (body.type !== 'draft') {
-        await this.assertMeteredAllowance(
-          orgId,
-          (post.settings as any)?.__type,
-          post.value.map((p) => p.content),
-          body.type === 'now' ? new Date() : post.date || body.date,
-          post.value.map((p) => p.id).filter((id) => !!id)
-        );
-      }
 
       const { posts } = await this._postRepository.createOrUpdatePost(
         body.type,
@@ -1352,13 +1435,36 @@ export class PostsService {
 
     // schedule: Set status to QUEUE and change date (reschedule the post)
     // update: Just change the date without changing the status
-    const newDate = await this._postRepository.changeDate(
-      orgId,
-      id,
-      date,
-      getPostById.state === 'DRAFT',
-      action
-    );
+    const move = () =>
+      this._postRepository.changeDate(
+        orgId,
+        id,
+        date,
+        getPostById.state === 'DRAFT',
+        action
+      );
+
+    // moving a post into another month moves what it costs against the
+    // allowance of the providers that cost per post
+    const counts =
+      getPostById.state !== 'DRAFT' &&
+      getPostById.state !== 'ERROR' &&
+      !!this._integrationManager.getSocialIntegration(
+        getPostById.integration.providerIdentifier
+      )?.meteredCost;
+    const newDate = counts
+      ? await this.withMeteredLock(orgId, async () => {
+          await this.assertMeteredAllowance(orgId, [
+            {
+              identifier: getPostById.integration.providerIdentifier,
+              contents: [getPostById.content],
+              ids: [id],
+              date,
+            },
+          ]);
+          return move();
+        })
+      : await move();
 
     if (action === 'schedule') {
       try {

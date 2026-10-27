@@ -24,6 +24,9 @@ export interface PricingInterface {
 }
 // AI features (writing assistant, image and video generation) are off on every
 // plan for now: they are not offered, so no plan promises them
+// How the posts of the providers that cost per post are named on the plans
+export const meteredPostsLabel = 'X (Twitter) posts';
+
 export const pricing: PricingInterface = {
   // No plan chosen yet (and what an organization falls back to when a
   // subscription ends): the app asks to pick a plan

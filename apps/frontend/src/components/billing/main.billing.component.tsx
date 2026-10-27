@@ -11,7 +11,10 @@ import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import dayjs from 'dayjs';
 import clsx from 'clsx';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import {
+  meteredPostsLabel,
+  pricing,
+} from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import {
   pricingINR,
   pricingUSD,
@@ -124,7 +127,7 @@ export const Features: FC<{
     );
     if (currentPricing.metered_posts_per_month) {
       list.push(
-        `${currentPricing.metered_posts_per_month} X (Twitter) posts per month`
+        `${currentPricing.metered_posts_per_month} ${meteredPostsLabel} per month`
       );
     }
     if (currentPricing.team_members) {
@@ -248,6 +251,7 @@ const useMeteredUsage = () => {
   const fetch = useFetch();
   return useSWR<{
     providers: string[];
+    names: string[];
     used: number;
     limit: number | null;
   }>('/posts/metered-usage', async () => {
@@ -264,7 +268,7 @@ const MeteredUsage: FC = () => {
 
   return (
     <div className="text-[14px] opacity-80">
-      {t('metered_usage_this_month', 'X (Twitter) posts this month:')}{' '}
+      {data.names.join(', ')} {t('metered_usage_this_month', 'posts this month:')}{' '}
       {data.used} {t('metered_posts_of', 'of')} {data.limit}
     </div>
   );

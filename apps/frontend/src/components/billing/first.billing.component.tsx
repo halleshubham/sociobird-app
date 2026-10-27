@@ -15,7 +15,6 @@ import {
   pricingUSD,
   NEW_USER_DISCOUNT_PERCENT,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing.razorpay';
-import { capitalize } from 'lodash';
 import clsx from 'clsx';
 import { Button } from '@gitroom/react/form/button';
 import { CheckIconComponent } from '@gitroom/frontend/components/ui/check.icon.component';
@@ -90,12 +89,14 @@ export const FirstBillingComponent = () => {
 
   const getPrice = useCallback(
     (key: string, p: 'month_price' | 'year_price') => {
-      if (selectedCurrency === 'inr' && key in pricingINR) {
-        return pricingINR[key as keyof typeof pricingINR][p];
+      if (selectedCurrency === 'inr') {
+        // ULTIMATE has no self-serve price - contact-us only, same as the
+        // marketing site's "Scale" tier.
+        return key in pricingINR
+          ? pricingINR[key as keyof typeof pricingINR][p]
+          : null;
       }
       if (hasCurrencyChoice && selectedCurrency === 'usd') {
-        // ULTIMATE has no self-serve USD price - contact-us only, same as
-        // the marketing site's "Scale" tier.
         return key in pricingUSD
           ? pricingUSD[key as keyof typeof pricingUSD][p]
           : null;
@@ -107,6 +108,21 @@ export const FirstBillingComponent = () => {
   const isContactUsOnly = getPrice(tier, 'month_price') === null;
 
   const isNewUserOffer = !!user?.allowTrial && newUserDiscountEnabled;
+
+  const startFreePlan = useCallback(async () => {
+    setLoading(true);
+    const response = await fetch('/billing/free-plan', { method: 'POST' });
+    if (!response.ok) {
+      setLoading(false);
+      toast.show(
+        (await response.json().catch(() => ({})))?.message ||
+          t('free_plan_failed', 'Could not start the free plan'),
+        'warning'
+      );
+      return;
+    }
+    window.location.href = '/launches';
+  }, []);
 
   const startCheckout = useCallback(async () => {
     if (isContactUsOnly) {
@@ -191,7 +207,10 @@ export const FirstBillingComponent = () => {
   };
 
   const price = useMemo(
-    () => Object.entries(pricing).filter(([key, value]) => key !== 'FREE'),
+    () =>
+      Object.entries(pricing).filter(
+        ([key]) => key !== 'FREE' && key !== 'FREEPLAN'
+      ),
     []
   );
 
@@ -291,7 +310,7 @@ export const FirstBillingComponent = () => {
           </div>
           <div className="mt-[24px] p-[24px] rounded-[20px] border-[1.5px] border-newColColor flex flex-col gap-[16px]">
             <div className="flex items-center justify-between">
-              <div className="text-[18px] font-[600]">{capitalize(tier)}</div>
+              <div className="text-[18px] font-[600]">{pricing[tier].label}</div>
               {isContactUsOnly ? (
                 <div className="text-[28px] font-[700]">
                   {t('custom_pricing', 'Custom')}
@@ -340,6 +359,18 @@ export const FirstBillingComponent = () => {
                 ? t('start_7_days_free_trial', 'Start 7 days free trial')
                 : t('billing_purchase', 'Purchase')}
             </Button>
+            <div className="text-center text-[14px] text-customColor18">
+              {t('billing_or', 'or')}{' '}
+              <span
+                className="underline cursor-pointer hover:font-[700]"
+                onClick={startFreePlan}
+              >
+                {t(
+                  'billing_continue_free',
+                  `continue with the Free plan (${pricing.FREEPLAN.channel} channels)`
+                )}
+              </span>
+            </div>
           </div>
         </div>
         <div className="flex flex-col ps-[40px] tablet:!ps-[0] border-l border-newColColor py-[40px] mobile:!pt-[24px] tablet:border-none tablet:pb-0">
@@ -418,7 +449,7 @@ export const FirstBillingComponent = () => {
                   )}
                 >
                   <div className="text-[20px] mobile:text-[18px] font-[500]">
-                    {capitalize(key)}
+                    {pricing[key].label}
                   </div>
                   {(() => {
                     const keyPrice = getPrice(

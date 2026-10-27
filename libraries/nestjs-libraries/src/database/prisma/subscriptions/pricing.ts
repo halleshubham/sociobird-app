@@ -1,5 +1,6 @@
 export interface PricingInnerInterface {
   current: string;
+  label: string;
   month_price: number;
   year_price: number;
   channel?: number;
@@ -20,8 +21,11 @@ export interface PricingInterface {
   [key: string]: PricingInnerInterface;
 }
 export const pricing: PricingInterface = {
+  // No plan chosen yet (and what an organization falls back to when a
+  // subscription ends): the app asks to pick a plan
   FREE: {
     current: 'FREE',
+    label: 'No plan',
     month_price: 0,
     year_price: 0,
     channel: 0,
@@ -38,13 +42,34 @@ export const pricing: PricingInterface = {
     autoPost: false,
     generate_videos: 0,
   },
+  // The free plan: a manual-style subscription an organization starts itself
+  FREEPLAN: {
+    current: 'FREEPLAN',
+    label: 'Free',
+    month_price: 0,
+    year_price: 0,
+    channel: 2,
+    image_generation_count: 0,
+    posts_per_month: 1000000,
+    team_members: false,
+    community_features: false,
+    featured_by_gitroom: false,
+    ai: false,
+    import_from_channels: false,
+    image_generator: false,
+    public_api: false,
+    webhooks: 0,
+    autoPost: false,
+    generate_videos: 0,
+  },
   STANDARD: {
     current: 'STANDARD',
-    month_price: 25,
-    year_price: 239,
+    label: 'Starter',
+    month_price: 5,
+    year_price: 48,
     channel: 5,
     posts_per_month: 1000000,
-    image_generation_count: 20,
+    image_generation_count: 10,
     team_members: false,
     ai: true,
     community_features: false,
@@ -54,15 +79,16 @@ export const pricing: PricingInterface = {
     public_api: true,
     webhooks: 2,
     autoPost: false,
-    generate_videos: 3,
+    generate_videos: 0,
   },
   TEAM: {
     current: 'TEAM',
-    month_price: 45,
-    year_price: 429,
-    channel: 10,
+    label: 'Growth',
+    month_price: 11,
+    year_price: 106,
+    channel: 15,
     posts_per_month: 1000000,
-    image_generation_count: 100,
+    image_generation_count: 40,
     community_features: true,
     team_members: true,
     featured_by_gitroom: true,
@@ -72,15 +98,16 @@ export const pricing: PricingInterface = {
     public_api: true,
     webhooks: 10,
     autoPost: true,
-    generate_videos: 10,
+    generate_videos: 2,
   },
   PRO: {
     current: 'PRO',
-    month_price: 69,
-    year_price: 659,
-    channel: 30,
+    label: 'Pro',
+    month_price: 21,
+    year_price: 202,
+    channel: 40,
     posts_per_month: 1000000,
-    image_generation_count: 300,
+    image_generation_count: 120,
     community_features: true,
     team_members: true,
     featured_by_gitroom: true,
@@ -90,10 +117,12 @@ export const pricing: PricingInterface = {
     public_api: true,
     webhooks: 30,
     autoPost: true,
-    generate_videos: 30,
+    generate_videos: 5,
   },
+  // Custom pricing: no self-serve price in any currency, handled by contact
   ULTIMATE: {
     current: 'ULTIMATE',
+    label: 'Scale',
     month_price: 149,
     year_price: 1429,
     channel: 100,

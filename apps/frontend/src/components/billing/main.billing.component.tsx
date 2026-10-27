@@ -260,12 +260,14 @@ export const MainBillingComponent: FC<{
   const currencySymbol = selectedCurrency === 'inr' ? '₹' : '$';
   const getPrice = useCallback(
     (tier: string, period: 'month_price' | 'year_price') => {
-      if (selectedCurrency === 'inr' && tier in pricingINR) {
-        return pricingINR[tier as keyof typeof pricingINR][period];
+      if (selectedCurrency === 'inr') {
+        // ULTIMATE has no self-serve price - contact-us only, same as the
+        // marketing site's "Scale" tier.
+        return tier in pricingINR
+          ? pricingINR[tier as keyof typeof pricingINR][period]
+          : null;
       }
       if (hasCurrencyChoice && selectedCurrency === 'usd') {
-        // ULTIMATE has no self-serve USD price - contact-us only, same as
-        // the marketing site's "Scale" tier.
         return tier in pricingUSD
           ? pricingUSD[tier as keyof typeof pricingUSD][period]
           : null;
@@ -609,7 +611,7 @@ export const MainBillingComponent: FC<{
       {finishTrial && <FinishTrial close={() => setFinishTrial(false)} />}
       <div className="flex gap-[16px] [@media(max-width:1024px)]:flex-col [@media(max-width:1024px)]:text-center">
         {Object.entries(pricing)
-          .filter((f) => !isGeneral || f[0] !== 'FREE')
+          .filter((f) => f[0] !== 'FREEPLAN' && (!isGeneral || f[0] !== 'FREE'))
           .map(([name, values]) => {
             const fullPrice = getPrice(
               name,
@@ -638,7 +640,7 @@ export const MainBillingComponent: FC<{
                   {NEW_USER_DISCOUNT_PERCENT}% {t('off_first_cycle', 'off first cycle')}
                 </div>
               )}
-              <div className="text-[18px]">{name}</div>
+              <div className="text-[18px]">{values.label}</div>
               <div className="text-[38px] flex gap-[6px] items-center">
                 {isContactUsOnly ? (
                   <div>{t('custom_pricing', 'Custom')}</div>
@@ -713,6 +715,7 @@ export const MainBillingComponent: FC<{
                         : 'Cancel subscription'
                       : // @ts-ignore
                       (user?.tier === 'FREE' ||
+                          user?.tier?.current === 'FREEPLAN' ||
                           user?.tier?.current === 'FREE') &&
                         user.allowTrial
                       ? t('start_7_days_free_trial', 'Start 7 days free trial')

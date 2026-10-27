@@ -930,6 +930,7 @@ enum State {
 }
 
 enum SubscriptionTier {
+  FREEPLAN
   STANDARD
   PRO
   TEAM

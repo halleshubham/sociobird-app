@@ -12,6 +12,7 @@ import {
   LIFETIME_PRO_PRICE_INR,
   NEW_USER_DISCOUNT_PERCENT,
   getRazorpayPricing,
+  hasRazorpayPricing,
   RazorpayCurrency,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing.razorpay';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
@@ -243,9 +244,9 @@ export class RazorpayProvider extends PaymentProviderAbstract {
   ) {
     const id = makeId(10);
     const currency: RazorpayCurrency = body.currency || 'INR';
-    if (currency === 'USD' && body.billing === 'ULTIMATE') {
+    if (!hasRazorpayPricing(body.billing, currency)) {
       throw new HttpException(
-        'The Scale plan is contact-us only in USD - reach out to support@shackyapps.in',
+        'The Scale plan is custom priced - reach out to support@shackyapps.in',
         400
       );
     }
@@ -362,10 +363,17 @@ export class RazorpayProvider extends PaymentProviderAbstract {
     // already billed in - switching currency isn't a supported flow here.
     const currency = (currentSubscription.currency as RazorpayCurrency) || 'INR';
     const priceKey = body.period === 'MONTHLY' ? 'month_price' : 'year_price';
-    const currentPrice =
-      getRazorpayPricing(currentSubscription.subscriptionTier as Billing, currency)?.[
-        priceKey
-      ] || 0;
+    const currentPrice = hasRazorpayPricing(
+      currentSubscription.subscriptionTier,
+      currency
+    )
+      ? getRazorpayPricing(currentSubscription.subscriptionTier, currency)[
+          priceKey
+        ]
+      : 0;
+    if (!hasRazorpayPricing(body.billing, currency)) {
+      return { price: false };
+    }
     const newPrice = getRazorpayPricing(body.billing, currency)[priceKey];
 
     const cycleStart = razorpaySubscription.current_start;

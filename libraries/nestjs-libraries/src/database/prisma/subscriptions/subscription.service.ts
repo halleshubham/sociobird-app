@@ -94,7 +94,7 @@ export class SubscriptionService {
   async modifySubscriptionByOrg(
     organizationId: string,
     totalChannels: number,
-    billing: 'FREE' | 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE'
+    billing: 'FREE' | 'FREEPLAN' | 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE'
   ) {
     if (!organizationId) {
       return false;
@@ -143,7 +143,7 @@ export class SubscriptionService {
   async modifySubscription(
     customerId: string,
     totalChannels: number,
-    billing: 'FREE' | 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE'
+    billing: 'FREE' | 'FREEPLAN' | 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE'
   ) {
     if (!customerId) {
       return false;
@@ -209,7 +209,7 @@ export class SubscriptionService {
     identifier: string,
     customerId: string,
     totalChannels: number,
-    billing: 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE',
+    billing: 'FREEPLAN' | 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE',
     period: 'MONTHLY' | 'YEARLY',
     cancelAt: number | null,
     code?: string,
@@ -252,7 +252,7 @@ export class SubscriptionService {
     provider: string,
     identifier: string,
     totalChannels: number,
-    billing: 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE',
+    billing: 'FREEPLAN' | 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE',
     period: 'MONTHLY' | 'YEARLY',
     cancelAt: number | null,
     currency?: 'INR' | 'USD'
@@ -399,7 +399,7 @@ export class SubscriptionService {
     subscription: string,
     provider: string
   ) {
-    const tiers = ['STANDARD', 'TEAM', 'PRO', 'ULTIMATE'] as const;
+    const tiers = ['FREEPLAN', 'STANDARD', 'TEAM', 'PRO', 'ULTIMATE'] as const;
     const tier = tiers.find((f) => f === subscription);
     if (!tier) {
       throw new HttpException(
@@ -441,6 +441,33 @@ export class SubscriptionService {
         400
       );
     }
+  }
+
+  // An organization takes the free plan itself, only while it has no
+  // subscription of any kind. Nothing is billed, so the placeholder
+  // addSubscription parks in org.paymentId is cleared for a later checkout.
+  async startFreePlan(orgId: string, userId: string, provider: string) {
+    const current = await this._subscriptionRepository.getSubscriptionByOrgId(
+      orgId
+    );
+    if (current) {
+      throw new HttpException('This organization already has a plan', 400);
+    }
+
+    // creating a subscription row ends the free trial offer, which belongs to
+    // the first paid plan, not to the free one
+    const allowTrial = (await this._organizationService.getOrgById(orgId))
+      ?.allowTrial;
+    try {
+      await this.addSubscription(orgId, userId, 'FREEPLAN', provider);
+    } finally {
+      // addSubscription parks the user id in org.paymentId, also when it fails halfway
+      await this._subscriptionRepository.setCustomerId(orgId, null);
+      if (allowTrial) {
+        await this._subscriptionRepository.setAllowTrial(orgId, true);
+      }
+    }
+    return { tier: 'FREEPLAN' };
   }
 
   async removeManualSubscription(orgId: string) {

@@ -5,6 +5,7 @@ import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/o
 import { OAuthService } from '@gitroom/nestjs-libraries/database/prisma/oauth/oauth.service';
 import { HttpForbiddenException } from '@gitroom/nestjs-libraries/services/exception.filter';
 import { setSentryUserContext } from '@gitroom/nestjs-libraries/sentry/initialize.sentry';
+import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 
 @Injectable()
 export class PublicAuthMiddleware implements NestMiddleware {
@@ -64,6 +65,16 @@ export class PublicAuthMiddleware implements NestMiddleware {
         res
           .status(HttpStatus.UNAUTHORIZED)
           .json({ msg: 'No subscription found' });
+        return;
+      }
+
+      // plans without API access (the free plan) cannot use the API key or MCP
+      const tier = (org.subscription as { subscriptionTier?: string } | undefined)
+        ?.subscriptionTier;
+      if (tier && pricing[tier] && !pricing[tier].public_api) {
+        res.status(HttpStatus.FORBIDDEN).json({
+          msg: 'API access is not included in your plan, please upgrade',
+        });
         return;
       }
 

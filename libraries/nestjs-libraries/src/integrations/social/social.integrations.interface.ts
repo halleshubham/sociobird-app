@@ -168,6 +168,8 @@ export interface SocialProvider
   stripLinks?: () => boolean;
   // links are removed before publishing unless the organization says otherwise
   stripLinksByDefault?: () => boolean;
+  // set by providers that cost us money per post: what one post of this content counts against the plan's metered allowance
+  meteredCost?: (content: string, linksStripped: boolean) => number;
   refreshCron?: boolean;
   dto?: any;
   maxLength: (additionalSettings?: any, settings?: any) => number;

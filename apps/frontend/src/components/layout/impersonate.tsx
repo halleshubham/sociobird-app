@@ -566,9 +566,18 @@ const ChargesModal: FC<{ close: () => void }> = ({ close }) => {
   );
 };
 
+interface MeteredUsage {
+  providers: string[];
+  used: number;
+  planLimit: number;
+  override: number | null;
+  limit: number | null;
+}
+
 interface OrgSettings {
   stripLinksProviders: string[];
   providers: string[];
+  metered: MeteredUsage;
 }
 
 const useOrgSettings = () => {
@@ -580,6 +589,82 @@ const useOrgSettings = () => {
     revalidateOnReconnect: false,
     revalidateIfStale: false,
   });
+};
+
+const MeteredPostsSection: FC = () => {
+  const fetch = useFetch();
+  const t = useT();
+  const toast = useToaster();
+  const { data, mutate } = useOrgSettings();
+  const [value, setValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const metered = data?.metered;
+
+  const save = useCallback(
+    (limit: number | null) => async () => {
+      setSaving(true);
+      const response = await fetch('/admin/org-settings/metered-posts', {
+        method: 'PUT',
+        body: JSON.stringify({ limit }),
+      });
+      setSaving(false);
+      if (!response.ok) {
+        toast.show(
+          await errorMessage(response, 'Could not save the setting'),
+          'warning'
+        );
+        return;
+      }
+      setValue('');
+      await mutate();
+      toast.show(t('saved', 'Saved'), 'success');
+    },
+    []
+  );
+
+  if (!metered?.providers.length) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-[8px] border-t border-newColColor pt-[12px]">
+      <div className="text-[14px] opacity-80">
+        {t(
+          'metered_posts_description',
+          'Monthly post allowance for providers that cost per post:'
+        )}{' '}
+        {metered.providers.join(', ')}.{' '}
+        {t('metered_posts_used', 'Used this month:')} {metered.used}{' '}
+        {t('metered_posts_of', 'of')} {metered.limit ?? '∞'}.{' '}
+        {t('metered_posts_plan', 'Plan allowance:')} {metered.planLimit}
+        {metered.override !== null &&
+          ` (${t('metered_posts_overridden', 'overridden to')} ${metered.override})`}
+        .
+      </div>
+      <div className="flex items-center gap-[8px]">
+        <input
+          type="number"
+          min={0}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={String(metered.limit ?? '')}
+          className="h-[40px] w-[140px] px-[12px] rounded-[8px] border border-newColColor bg-transparent text-textColor"
+        />
+        <Button
+          onClick={save(Number(value))}
+          loading={saving}
+          disabled={value === '' || Number(value) < 0}
+        >
+          {t('metered_posts_set', 'Set allowance')}
+        </Button>
+        {metered.override !== null && (
+          <Button onClick={save(null)} loading={saving}>
+            {t('metered_posts_reset', 'Use plan allowance')}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const StripLinksModal: FC<{ close: () => void }> = ({ close }) => {
@@ -653,6 +738,7 @@ const StripLinksModal: FC<{ close: () => void }> = ({ close }) => {
           {t('save', 'Save')}
         </Button>
       </div>
+      <MeteredPostsSection />
     </div>
   );
 };
@@ -663,7 +749,7 @@ const StripLinks = () => {
 
   const handleClick = useCallback(() => {
     openModal({
-      title: t('strip_links_title', 'Remove links from posts'),
+      title: t('strip_links_title', 'Organization options'),
       children: (close) => <StripLinksModal close={close} />,
     });
   }, []);
@@ -673,7 +759,7 @@ const StripLinks = () => {
       className="px-[10px] rounded-[4px] bg-teal-700 text-white cursor-pointer whitespace-nowrap"
       onClick={handleClick}
     >
-      {t('strip_links_button', 'Link options')}
+      {t('strip_links_button', 'Org options')}
     </div>
   );
 };

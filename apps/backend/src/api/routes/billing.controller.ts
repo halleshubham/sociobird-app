@@ -319,6 +319,18 @@ export class BillingController {
     );
   }
 
+  @Post('/free-plan')
+  async startFreePlan(
+    @GetUserFromRequest() user: User,
+    @GetOrgFromRequest() org: Organization
+  ) {
+    return this._subscriptionService.startFreePlan(
+      org.id,
+      user.id,
+      this._paymentService.getDefaultProviderName('web')
+    );
+  }
+
   @Post('/remove-subscription')
   async removeSubscription(
     @GetUserFromRequest() user: User,

@@ -6,38 +6,44 @@ export interface RazorpayPricingInner {
   year_price: number;
 }
 
+// Tiers without a price here (ULTIMATE, the Scale plan) are contact-us only,
+// in every currency.
 export const pricingINR: Record<
-  'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE',
+  'STANDARD' | 'TEAM' | 'PRO',
   RazorpayPricingInner
 > = {
-  STANDARD: { month_price: 799, year_price: 7670 },
-  TEAM: { month_price: 1999, year_price: 19190 },
-  PRO: { month_price: 4999, year_price: 47990 },
-  ULTIMATE: { month_price: 9999, year_price: 95990 },
+  STANDARD: { month_price: 199, year_price: 1910 },
+  TEAM: { month_price: 449, year_price: 4310 },
+  PRO: { month_price: 899, year_price: 8630 },
 };
 
 export type RazorpayCurrency = 'INR' | 'USD';
 
 // International pricing, now that Razorpay is activated for cross-border
-// cards/banks. ULTIMATE has no self-serve USD price - it's "contact us" in
-// USD on the marketing site, so it stays INR-only here too.
+// cards/banks.
 export const pricingUSD: Record<'STANDARD' | 'TEAM' | 'PRO', RazorpayPricingInner> = {
-  STANDARD: { month_price: 9, year_price: 86 },
-  TEAM: { month_price: 19, year_price: 182 },
-  PRO: { month_price: 49, year_price: 470 },
+  STANDARD: { month_price: 3, year_price: 29 },
+  TEAM: { month_price: 5, year_price: 48 },
+  PRO: { month_price: 11, year_price: 106 },
 };
 
+export function hasRazorpayPricing(
+  billing: string,
+  currency: RazorpayCurrency
+): boolean {
+  return billing in (currency === 'INR' ? pricingINR : pricingUSD);
+}
+
 export function getRazorpayPricing(
-  billing: keyof typeof pricingINR,
+  billing: string,
   currency: RazorpayCurrency
 ): RazorpayPricingInner {
-  if (currency === 'INR') {
-    return pricingINR[billing];
+  if (!hasRazorpayPricing(billing, currency)) {
+    throw new Error(`${billing} has no self-serve price - contact sales`);
   }
-  if (!(billing in pricingUSD)) {
-    throw new Error(`${billing} has no self-serve USD price - contact sales`);
-  }
-  return pricingUSD[billing as keyof typeof pricingUSD];
+  return currency === 'INR'
+    ? pricingINR[billing as keyof typeof pricingINR]
+    : pricingUSD[billing as keyof typeof pricingUSD];
 }
 
 // One-time purchase, not a subscription plan - grants PRO with isLifetime.
@@ -49,5 +55,6 @@ export const LIFETIME_PRO_PRICE_INR = 24999;
 // so this can't be re-triggered by cancelling and resubscribing). Razorpay
 // has no per-invoice discount API, so it starts the subscription on a
 // separate discounted plan and schedules a change back to the full-price
-// plan at cycle end - see RazorpayProvider.findOrCreateDiscountedPlan.
+// plan at cycle end. Not used with Razorpay any more (no new-user discount
+// there); the percentage is still shown for Stripe's coupon.
 export const NEW_USER_DISCOUNT_PERCENT = 20;

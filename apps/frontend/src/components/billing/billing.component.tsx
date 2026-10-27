@@ -17,5 +17,11 @@ export const BillingComponent = () => {
   if (isLoadingSubscription) {
     return <LoadingComponent />;
   }
-  return <MainBillingComponent sub={subscription?.subscription} />;
+  // the free plan is not a paid subscription: show the plans as for no plan
+  const current = subscription?.subscription;
+  return (
+    <MainBillingComponent
+      sub={current?.subscriptionTier === 'FREEPLAN' ? undefined : current}
+    />
+  );
 };

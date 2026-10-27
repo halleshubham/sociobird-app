@@ -101,3 +101,10 @@ POST /api/billing/remove-subscription                               # only remov
 - Site FAQ says "New accounts start with a free trial": unverified against billing code.
 - Dead Polotno leftovers: `apps/frontend/src/app/polonto.css` (imported by `global.scss`) and `NEXT_PUBLIC_POLOTNO` in `docker-compose.yaml`. Safe cleanup candidate (needs a frontend build to confirm).
 - The Botsab tutorial video and the "Generate posts" video in the docs are incomplete.
+
+## Giving an organization more X posts (manual)
+
+X costs us money per post, so X posting has a monthly allowance with the plan (Solo 30, Team 100, Agency 300, Scale 1,000, Free none; a post with a link counts 10, links are removed from X posts by default). A customer who reaches it sees "X post allowance reached ... contact support".
+1. Agree a price and collect payment yourself (for example a Razorpay payment link). Roughly: a post costs us about ₹1.3, charge at least ₹2 a post.
+2. Impersonate the customer, open **Org options** in the bar, and under the X allowance enter the new monthly number, then **Set allowance**. The usage shown there is for the current calendar month.
+3. The override stays until you press **Use plan allowance**, so put a reminder to reset it when the extra period ends.

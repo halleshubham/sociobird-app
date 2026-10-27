@@ -11,7 +11,6 @@ import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/s
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization, User } from '@prisma/client';
 import { BillingSubscribeDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.subscribe.dto';
-import { MeteredOrderDto } from '@gitroom/nestjs-libraries/dtos/billing/metered.order.dto';
 import { AdminApplyCouponDto } from '@gitroom/nestjs-libraries/dtos/billing/admin.apply.coupon.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
@@ -342,31 +341,6 @@ export class BillingController {
     }
 
     return this._subscriptionService.removeManualSubscription(org.id);
-  }
-
-  @Post('/metered/razorpay/order')
-  async createMeteredRazorpayOrder(
-    @GetOrgFromRequest() org: Organization,
-    @Body() body: MeteredOrderDto
-  ) {
-    return this._razorpayProvider.createMeteredOrder(
-      org.id,
-      body.pack,
-      body.currency
-    );
-  }
-
-  @Post('/metered/razorpay/verify')
-  async verifyMeteredRazorpay(
-    @GetOrgFromRequest() org: Organization,
-    @Body()
-    body: {
-      razorpay_order_id: string;
-      razorpay_payment_id: string;
-      razorpay_signature: string;
-    }
-  ) {
-    return this._razorpayProvider.verifyMeteredPayment(org.id, body);
   }
 
   @Post('/lifetime/razorpay/order')

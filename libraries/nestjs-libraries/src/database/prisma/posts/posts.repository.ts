@@ -31,34 +31,8 @@ export class PostsRepository {
     private _tags: PrismaRepository<'tags'>,
     private _tagsPosts: PrismaRepository<'tagsPosts'>,
     private _errors: PrismaRepository<'errors'>,
-    private _organization: PrismaRepository<'organization'>,
-    private _meteredCredits: PrismaRepository<'meteredCredits'>
+    private _organization: PrismaRepository<'organization'>
   ) {}
-
-  async getMeteredCredits(organizationId: string, monthStart: Date) {
-    const { _sum } = await this._meteredCredits.model.meteredCredits.aggregate({
-      where: { organizationId, monthStart },
-      _sum: { units: true },
-    });
-
-    return _sum.units || 0;
-  }
-
-  // Idempotent on the payment id
-  async addMeteredCredits(
-    organizationId: string,
-    units: number,
-    monthStart: Date,
-    source: string,
-    amount?: number,
-    currency?: string
-  ) {
-    await this._meteredCredits.model.meteredCredits.upsert({
-      where: { source },
-      update: {},
-      create: { organizationId, units, monthStart, source, amount, currency },
-    });
-  }
 
   async getMeteredAllowance(organizationId: string) {
     const org = await this._organization.model.organization.findUnique({

@@ -11,13 +11,11 @@ import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions
 import {
   LIFETIME_PRO_PRICE_INR,
   getRazorpayPricing,
-  meteredPacks,
   hasRazorpayPricing,
   RazorpayCurrency,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing.razorpay';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
-import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import {
   PaymentInvoice,
   PaymentPlatform,
@@ -50,8 +48,7 @@ export class RazorpayProvider extends PaymentProviderAbstract {
 
   constructor(
     private _subscriptionService: SubscriptionService,
-    private _organizationService: OrganizationService,
-    private _postsService: PostsService
+    private _organizationService: OrganizationService
   ) {
     super();
   }
@@ -80,7 +77,6 @@ export class RazorpayProvider extends PaymentProviderAbstract {
     // confirmation path, this is just a backup in case the browser tab
     // closed before that call went out. Idempotent either way.
     if (body.event === 'payment.captured') {
-      await this.handleMeteredPayment(body?.payload?.payment?.entity);
       return this.handleLifetimePayment(body?.payload?.payment?.entity);
     }
 
@@ -343,112 +339,6 @@ export class RazorpayProvider extends PaymentProviderAbstract {
   // One-time payment (Razorpay Orders, not Subscriptions) for a lifetime PRO
   // plan - separate from the generic `lifetimeDeal(code)` contract, which is
   // for redeeming a promo code, not taking a live payment.
-  // Extra posts for the providers that cost per post: a one-time payment
-  // credited to the calendar month it is bought in
-  async createMeteredOrder(
-    organizationId: string,
-    packId: string,
-    currency: RazorpayCurrency
-  ) {
-    const pack = meteredPacks[packId];
-    if (!pack) {
-      throw new HttpException('Unknown pack', 400);
-    }
-
-    const { planLimit } = await this._postsService.meteredUsage(organizationId);
-    if (!planLimit) {
-      throw new HttpException(
-        'Your plan does not include these posts, please upgrade first',
-        400
-      );
-    }
-
-    const amount = currency === 'INR' ? pack.inr : pack.usd;
-    const id = makeId(10);
-    const order = await razorpay.orders.create({
-      amount: amount * 100,
-      currency,
-      receipt: id,
-      notes: {
-        service: 'gitroom',
-        type: 'metered',
-        organizationId,
-        units: String(pack.units),
-        id,
-      },
-    });
-
-    return { orderId: order.id, amount: order.amount, currency: order.currency };
-  }
-
-  async verifyMeteredPayment(
-    organizationId: string,
-    body: {
-      razorpay_order_id: string;
-      razorpay_payment_id: string;
-      razorpay_signature: string;
-    }
-  ) {
-    const valid = validatePaymentVerification(
-      { order_id: body.razorpay_order_id, payment_id: body.razorpay_payment_id },
-      body.razorpay_signature,
-      process.env.RAZORPAY_KEY_SECRET
-    );
-    if (!valid) {
-      throw new HttpException('Invalid payment signature', 400);
-    }
-
-    const order = await razorpay.orders.fetch(body.razorpay_order_id);
-    const notes = (order.notes || {}) as {
-      type?: string;
-      organizationId?: string;
-      units?: string;
-    };
-    if (notes.type !== 'metered' || notes.organizationId !== organizationId) {
-      throw new HttpException('Order does not match this organization', 400);
-    }
-
-    await this._postsService.addMeteredCredits(
-      organizationId,
-      Number(notes.units),
-      body.razorpay_payment_id,
-      Number(order.amount) / 100,
-      order.currency
-    );
-
-    return { success: true, units: Number(notes.units) };
-  }
-
-  // Backup for a closed browser tab, idempotent on the payment id
-  private async handleMeteredPayment(paymentEntity: any) {
-    if (!paymentEntity?.order_id) {
-      return { ok: true };
-    }
-    const order = await razorpay.orders.fetch(paymentEntity.order_id);
-    const notes = (order.notes || {}) as {
-      service?: string;
-      type?: string;
-      organizationId?: string;
-      units?: string;
-    };
-    if (
-      notes.service !== 'gitroom' ||
-      notes.type !== 'metered' ||
-      !notes.organizationId
-    ) {
-      return { ok: true };
-    }
-
-    await this._postsService.addMeteredCredits(
-      notes.organizationId,
-      Number(notes.units),
-      paymentEntity.id,
-      Number(order.amount) / 100,
-      order.currency
-    );
-    return { ok: true };
-  }
-
   async createLifetimeOrder(organizationId: string) {
     const id = makeId(10);
     const order = await razorpay.orders.create({

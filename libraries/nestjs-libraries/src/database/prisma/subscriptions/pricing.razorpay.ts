@@ -46,17 +46,6 @@ export function getRazorpayPricing(
     : pricingUSD[billing as keyof typeof pricingUSD];
 }
 
-// Extra posts for the providers that cost per post (X): a one-time payment,
-// valid for the calendar month it is bought in
-export const meteredPacks: Record<
-  string,
-  { units: number; inr: number; usd: number }
-> = {
-  small: { units: 100, inr: 199, usd: 3 },
-  medium: { units: 300, inr: 549, usd: 8 },
-  large: { units: 1000, inr: 1799, usd: 25 },
-};
-
 // One-time purchase, not a subscription plan - grants PRO with isLifetime.
 export const LIFETIME_PRO_PRICE_INR = 24999;
 

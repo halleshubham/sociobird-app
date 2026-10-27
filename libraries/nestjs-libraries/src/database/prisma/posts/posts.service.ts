@@ -666,10 +666,6 @@ export class PostsService {
         )
       : [];
 
-    const credits = await this._postRepository.getMeteredCredits(
-      orgId,
-      from.toDate()
-    );
     const stripped: Record<string, boolean> = {};
     let used = 0;
     for (const row of rows) {
@@ -685,28 +681,8 @@ export class PostsService {
       used,
       planLimit,
       override,
-      credits,
-      limit: unlimited ? null : (override ?? planLimit) + credits,
+      limit: unlimited ? null : override ?? planLimit,
     };
-  }
-
-  // Extra posts bought for the month of `date`, they expire with that month
-  public addMeteredCredits(
-    orgId: string,
-    units: number,
-    source: string,
-    amount?: number,
-    currency?: string,
-    date: Date = new Date()
-  ) {
-    return this._postRepository.addMeteredCredits(
-      orgId,
-      units,
-      dayjs(date).startOf('month').toDate(),
-      source,
-      amount,
-      currency
-    );
   }
 
   private async assertMeteredAllowance(
@@ -736,7 +712,7 @@ export class PostsService {
       throw new BadRequestException(
         usage.limit === 0
           ? `${provider.name} posting is not included in your plan, please upgrade`
-          : `${provider.name} post allowance reached: ${usage.used} of ${usage.limit} posts used in ${dayjs(date).format('MMMM')}, this post needs ${adds} more. Buy more posts in Billing, upgrade your plan or contact support.`
+          : `${provider.name} post allowance reached: ${usage.used} of ${usage.limit} posts used in ${dayjs(date).format('MMMM')}, this post needs ${adds} more. Upgrade your plan or contact support.`
       );
     }
   }

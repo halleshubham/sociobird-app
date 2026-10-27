@@ -27,6 +27,7 @@ model Organization {
   // superadmin override of the plan's monthly allowance for providers that cost us per post (null: the plan decides)
   meteredPostsOverride Int?
   autoPost            AutoPost[]
+  meteredCredits      MeteredCredits[]
   Comments            Comments[]
   credits             Credits[]
   customers           Customer[]
@@ -277,6 +278,22 @@ model SocialMediaAgencyNiche {
   agency   SocialMediaAgency @relation(fields: [agencyId], references: [id])
 
   @@id([agencyId, niche])
+}
+
+// Extra posts bought for the providers that cost per post (X). They only count in the calendar month they were bought in
+model MeteredCredits {
+  id             String       @id @default(cuid())
+  organizationId String
+  units          Int
+  monthStart     DateTime
+  // the payment id, so a payment is only ever credited once
+  source         String       @unique
+  amount         Int?
+  currency       String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, monthStart])
 }
 
 model Credits {

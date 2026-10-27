@@ -10,7 +10,6 @@ import { BillingSubscribeDto } from '@gitroom/nestjs-libraries/dtos/billing/bill
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import {
   LIFETIME_PRO_PRICE_INR,
-  NEW_USER_DISCOUNT_PERCENT,
   getRazorpayPricing,
   hasRazorpayPricing,
   RazorpayCurrency,
@@ -91,11 +90,9 @@ export class RazorpayProvider extends PaymentProviderAbstract {
       // trial subscription (future start_at) this is the ONLY event we get
       // until the trial ends, so it has to create the DB row too, or the
       // frontend's post-checkout poll would spin forever.
-      case 'subscription.charged':
-        await this.restoreFullPrice(entity);
-        return this.upsertSubscription(entity);
       case 'subscription.authenticated':
       case 'subscription.activated':
+      case 'subscription.charged':
       case 'subscription.updated':
         return this.upsertSubscription(entity);
       case 'subscription.cancelled':
@@ -104,35 +101,6 @@ export class RazorpayProvider extends PaymentProviderAbstract {
         return this.removeSubscription(entity);
       default:
         return { ok: true };
-    }
-  }
-
-  // A new-user offer subscription starts on the discounted plan. Once its
-  // first charge went through it has a billing cycle, so the change back to
-  // the full-price plan can be scheduled for the end of that cycle: only the
-  // first paid cycle is discounted. A failure only leaves the discounted
-  // price renewing, which is cheaper for the customer, never a double charge.
-  private async restoreFullPrice(entity: any) {
-    if (entity?.notes?.newUserDiscount !== 'true' || entity.has_scheduled_changes) {
-      return;
-    }
-
-    const { billing, period, currency } = entity.notes as {
-      billing: Billing;
-      period: Period;
-      currency?: RazorpayCurrency;
-    };
-    try {
-      const plan = await this.findOrCreatePlan(billing, period, currency || 'INR');
-      if (entity.plan_id === plan.id) {
-        return;
-      }
-      await razorpay.subscriptions.update(entity.id, {
-        plan_id: plan.id,
-        schedule_change_at: 'cycle_end',
-      });
-    } catch (err) {
-      // see above
     }
   }
 
@@ -224,48 +192,6 @@ export class RazorpayProvider extends PaymentProviderAbstract {
     });
   }
 
-  // New-user signup offer: Razorpay has no per-invoice discount API like
-  // Stripe's coupons, so the discount is a separate plan at the reduced
-  // amount - the subscription starts on this plan, then subscribe()
-  // schedules a change back to the full-price plan for cycle end, so only
-  // the first paid cycle is discounted.
-  private async findOrCreateDiscountedPlan(
-    billing: Billing,
-    period: Period,
-    currency: RazorpayCurrency
-  ) {
-    const pricingRow = getRazorpayPricing(billing, currency);
-    const fullAmount =
-      period === 'MONTHLY' ? pricingRow.month_price : pricingRow.year_price;
-    const amount = Math.round(
-      (fullAmount * (100 - NEW_USER_DISCOUNT_PERCENT)) / 100
-    );
-
-    const existing = await razorpay.plans.all({ count: 100 });
-    const found = (existing.items || []).find(
-      (p: any) =>
-        p.notes?.billing === billing &&
-        p.notes?.period === period &&
-        p.notes?.currency === currency &&
-        p.notes?.newUserDiscount === 'true' &&
-        p.item?.amount === amount * 100
-    );
-    if (found) {
-      return found;
-    }
-
-    return razorpay.plans.create({
-      period: period === 'MONTHLY' ? 'monthly' : 'yearly',
-      interval: 1,
-      item: {
-        name: `${billing} ${period} (${currency}, new user offer)`,
-        amount: amount * 100, // paise, or cents for USD
-        currency,
-      },
-      notes: { billing, period, currency, newUserDiscount: 'true' },
-    });
-  }
-
   async subscribe(
     uniqueId: string,
     organizationId: string,
@@ -317,20 +243,8 @@ export class RazorpayProvider extends PaymentProviderAbstract {
       ? Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
       : undefined;
 
-    // New-user signup offer applies alongside the trial (same `allowTrial`
-    // gate, which permanently flips false on this org's first subscription,
-    // so it can't be replayed by cancelling and resubscribing). Subscription
-    // starts on the discounted plan; the change back to full price is
-    // scheduled once the first charge went through (restoreFullPrice), as a
-    // subscription that has not been paid yet has no billing cycle to
-    // schedule a change at - switching it right away made checkout charge
-    // the full price.
-    const initialPlan = allowTrial
-      ? await this.findOrCreateDiscountedPlan(body.billing, body.period, currency)
-      : plan;
-
     const subscription = await razorpay.subscriptions.create({
-      plan_id: initialPlan.id,
+      plan_id: plan.id,
       total_count: TOTAL_COUNT[body.period],
       customer_notify: 1,
       ...(startAt ? { start_at: startAt } : {}),
@@ -343,7 +257,6 @@ export class RazorpayProvider extends PaymentProviderAbstract {
         userId,
         uniqueId,
         id,
-        ...(allowTrial ? { newUserDiscount: 'true' } : {}),
       },
     });
 

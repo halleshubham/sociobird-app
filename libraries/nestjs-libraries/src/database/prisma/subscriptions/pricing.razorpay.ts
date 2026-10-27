@@ -55,5 +55,6 @@ export const LIFETIME_PRO_PRICE_INR = 24999;
 // so this can't be re-triggered by cancelling and resubscribing). Razorpay
 // has no per-invoice discount API, so it starts the subscription on a
 // separate discounted plan and schedules a change back to the full-price
-// plan at cycle end - see RazorpayProvider.findOrCreateDiscountedPlan.
+// plan at cycle end. Not used with Razorpay any more (no new-user discount
+// there); the percentage is still shown for Stripe's coupon.
 export const NEW_USER_DISCOUNT_PERCENT = 20;

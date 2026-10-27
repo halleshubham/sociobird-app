@@ -72,8 +72,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           }
           razorpayKeyId={process.env.RAZORPAY_KEY_ID!}
           newUserDiscountEnabled={
+            // Razorpay has no new-user discount
             process.env.DEFAULT_WEB_PAYMENT_PROVIDER === 'razorpay'
-              ? !!process.env.RAZORPAY_KEY_ID
+              ? false
               : !!process.env.STRIPE_NEW_USER_DISCOUNT_ID
           }
           aiVideoGenerationEnabled={

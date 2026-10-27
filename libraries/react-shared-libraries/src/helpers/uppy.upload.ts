@@ -86,7 +86,7 @@ export class WaitForMediaProcessing extends BasePlugin<any, any, any> {
 
     if (media.status !== 'ready') {
       // a file that only existed to be converted has nothing to fall back to
-      const usable = /\.(png|jpe?g|gif|webp|mp4)$/i.test(media.name || '');
+      const usable = /\.(png|jpe?g|gif|webp|mp4|mov)$/i.test(media.name || '');
       if (!usable) {
         this.uppy.info(media.processingError || this.opts.fallbackMessage, 'error', 5000);
         this.uppy.setFileState(id, { error: media.processingError || 'failed' } as any);

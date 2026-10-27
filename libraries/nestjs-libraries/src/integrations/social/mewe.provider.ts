@@ -11,7 +11,7 @@ import dayjs from 'dayjs';
 import { Integration } from '@prisma/client';
 import { MeweDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/mewe.dto';
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
-import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 
 export class MeweProvider extends SocialAbstract implements SocialProvider {
   identifier = 'mewe';
@@ -247,7 +247,7 @@ export class MeweProvider extends SocialAbstract implements SocialProvider {
 
     // Upload photos if present (exclude videos)
     const imageMedia =
-      firstPost.media?.filter((m) => !m.path || !hasExtension(m.path, 'mp4')) ||
+      firstPost.media?.filter((m) => !m.path || !isVideoPath(m.path)) ||
       [];
 
     const uploadedPhotoIds: string[] = [];

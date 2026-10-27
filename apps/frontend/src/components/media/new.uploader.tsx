@@ -95,12 +95,11 @@ export function useUppyUploader(props: {
           if (type === 'video/*') {
             return ['video/mp4', 'video/mpeg', 'video/quicktime'];
           }
-          // the normalizer turns QuickTime into mp4, nothing else is accepted by the bucket
-          if (type === 'video/mp4' && mediaProcessing) {
-            return ['video/mp4', 'video/quicktime'];
-          }
           if (type === 'video/mp4' && transloadit && transloadit.length > 0) {
             return ['video/mp4', 'video/mpeg', 'video/quicktime'];
+          }
+          if (type === 'video/mp4') {
+            return ['video/mp4', 'video/quicktime'];
           }
           return [type];
         });

@@ -15,6 +15,7 @@ import { DribbbleDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-sett
 import mime from 'mime-types';
 import { DiscordDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/discord.dto';
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
+import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 
 export class DribbbleProvider extends SocialAbstract implements SocialProvider {
   override maxConcurrentJob = 3; // Dribbble has moderate API limits
@@ -33,7 +34,7 @@ export class DribbbleProvider extends SocialAbstract implements SocialProvider {
     string | true
   > {
     const isMp4 = firstItem?.find(
-      (item) => (item?.path?.indexOf?.('mp4') ?? -1) > -1
+      (item) => isVideoPath(item?.path)
     );
     if (firstItem?.length !== 1) {
       return 'Requires one item';

@@ -17,6 +17,7 @@ import * as process from 'node:process';
 import dayjs from 'dayjs';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { GmbSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/gmb.settings.dto';
+import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 
 const clientAndGmb = () => {
   const client = new google.auth.OAuth2({
@@ -68,7 +69,7 @@ export class GmbProvider extends SocialAbstract implements SocialProvider {
     // Check for video - GMB doesn't support video in local posts
     if ((items?.length ?? 0) > 0 && (items?.[0]?.length ?? 0) > 0) {
       const media = items?.[0]?.[0];
-      if ((media?.path?.indexOf?.('mp4') ?? -1) > -1) {
+      if (isVideoPath(media?.path)) {
         return 'Google My Business posts do not support video attachments';
       }
     }

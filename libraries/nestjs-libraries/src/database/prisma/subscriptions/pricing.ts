@@ -20,6 +20,8 @@ export interface PricingInnerInterface {
 export interface PricingInterface {
   [key: string]: PricingInnerInterface;
 }
+// AI features (writing assistant, image and video generation) are off on every
+// plan for now: they are not offered, so no plan promises them
 export const pricing: PricingInterface = {
   // No plan chosen yet (and what an organization falls back to when a
   // subscription ends): the app asks to pick a plan
@@ -69,9 +71,9 @@ export const pricing: PricingInterface = {
     year_price: 48,
     channel: 5,
     posts_per_month: 1000000,
-    image_generation_count: 10,
+    image_generation_count: 0,
     team_members: false,
-    ai: true,
+    ai: false,
     community_features: false,
     featured_by_gitroom: false,
     import_from_channels: true,
@@ -88,17 +90,17 @@ export const pricing: PricingInterface = {
     year_price: 106,
     channel: 15,
     posts_per_month: 1000000,
-    image_generation_count: 40,
+    image_generation_count: 0,
     community_features: true,
     team_members: true,
     featured_by_gitroom: true,
-    ai: true,
+    ai: false,
     import_from_channels: true,
-    image_generator: true,
+    image_generator: false,
     public_api: true,
     webhooks: 10,
     autoPost: true,
-    generate_videos: 2,
+    generate_videos: 0,
   },
   PRO: {
     current: 'PRO',
@@ -107,17 +109,17 @@ export const pricing: PricingInterface = {
     year_price: 202,
     channel: 40,
     posts_per_month: 1000000,
-    image_generation_count: 120,
+    image_generation_count: 0,
     community_features: true,
     team_members: true,
     featured_by_gitroom: true,
-    ai: true,
+    ai: false,
     import_from_channels: true,
-    image_generator: true,
+    image_generator: false,
     public_api: true,
     webhooks: 30,
     autoPost: true,
-    generate_videos: 5,
+    generate_videos: 0,
   },
   // Custom pricing: no self-serve price in any currency, handled by contact
   ULTIMATE: {
@@ -127,16 +129,16 @@ export const pricing: PricingInterface = {
     year_price: 1429,
     channel: 100,
     posts_per_month: 1000000,
-    image_generation_count: 500,
+    image_generation_count: 0,
     community_features: true,
     team_members: true,
     featured_by_gitroom: true,
-    ai: true,
+    ai: false,
     import_from_channels: true,
-    image_generator: true,
+    image_generator: false,
     public_api: true,
     webhooks: 10000,
     autoPost: true,
-    generate_videos: 60,
+    generate_videos: 0,
   },
 };

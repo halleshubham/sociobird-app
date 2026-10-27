@@ -17,6 +17,7 @@ import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { mnemonicToAccount } from 'viem/accounts';
 import { toDataURL } from 'qrcode';
+import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 
 const client = new NeynarAPIClient({
   apiKey: process.env.NEYNAR_SECRET_KEY || '00000000-000-0000-000-000000000000',
@@ -60,7 +61,7 @@ export class FarcasterProvider
   ): Promise<string | true> {
     if (
       list?.some((item) =>
-        item?.some((field) => (field?.path?.indexOf?.('mp4') ?? -1) > -1)
+        item?.some((field) => isVideoPath(field?.path))
       )
     ) {
       return 'Can only accept images';

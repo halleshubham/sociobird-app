@@ -15,7 +15,6 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import path from 'path';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
-import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { getMaxSize } from '@gitroom/nestjs-libraries/upload/custom.upload.validation';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { fileTypeFromBuffer } = require('file-type');
@@ -31,20 +30,12 @@ const ALLOWED_EXT_TO_MIME: Record<string, string> = {
   '.tif': 'image/tiff',
   '.tiff': 'image/tiff',
   '.mp4': 'video/mp4',
+  '.mov': 'video/quicktime',
 };
-
-// Multipart uploads go through the normalizer, so they may also carry
-// QuickTime, which it turns into an mp4; simple uploads never do
-function multipartExtToMime(): Record<string, string> {
-  return {
-    ...ALLOWED_EXT_TO_MIME,
-    ...(UploadFactory.processorEnabled() ? { '.mov': 'video/quicktime' } : {}),
-  };
-}
 
 function normalizeExtension(filename: string): string | null {
   const ext = path.extname(filename || '').toLowerCase();
-  return multipartExtToMime()[ext] ? ext : null;
+  return ALLOWED_EXT_TO_MIME[ext] ? ext : null;
 }
 
 const {
@@ -123,7 +114,7 @@ export async function createMultipartUpload(req: Request, res: Response) {
   if (!safeExt) {
     return res.status(400).json({ message: 'Unsupported file type.' });
   }
-  const safeContentType = multipartExtToMime()[safeExt];
+  const safeContentType = ALLOWED_EXT_TO_MIME[safeExt];
   const randomFilename = generateRandomString() + safeExt;
 
   try {
@@ -216,7 +207,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
       );
       return res.status(400).json({ message: 'Unsupported file type.' });
     }
-    const expectedMime = multipartExtToMime()[safeExt];
+    const expectedMime = ALLOWED_EXT_TO_MIME[safeExt];
 
     const head = await R2.send(
       new GetObjectCommand({
@@ -234,12 +225,10 @@ export async function completeMultipartUpload(req: Request, res: Response) {
     const detected = await fileTypeFromBuffer(prefix);
 
     // .mov and .mp4 are the same ISO BMFF family: a .mov with an ISO brand
-    // sniffs as video/mp4 and a QuickTime-brand file is often named .mp4.
-    // The normalizer reads both and always writes an mp4, so accept both
-    // for either extension whenever it is on; without it .mp4 stays strict.
+    // sniffs as video/mp4 and a QuickTime-brand file is often named .mp4,
+    // so either extension accepts both.
     const acceptedMimes =
-      UploadFactory.processorEnabled() &&
-      (safeExt === '.mov' || safeExt === '.mp4')
+      safeExt === '.mov' || safeExt === '.mp4'
         ? ['video/quicktime', 'video/mp4']
         : [expectedMime];
     if (!detected || !acceptedMimes.includes(detected.mime)) {

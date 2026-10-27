@@ -10,7 +10,7 @@ import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id'
 import sharp from 'sharp';
 import { lookup } from 'mime-types';
 import { readOrFetch } from '@gitroom/helpers/utils/read.or.fetch';
-import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+import { hasExtension, isVideoPath } from '@gitroom/helpers/utils/has.extension';
 import { timer } from '@gitroom/helpers/utils/timer';
 import {
   BadBody,
@@ -88,14 +88,14 @@ export class LinkedinProvider extends SocialAbstract implements SocialProvider {
     if (
       this.assetBoolean(vals?.post_as_images_carousel) &&
       ((firstPost?.length ?? 0) < 2 ||
-        firstPost?.some((p) => (p?.path?.indexOf?.('mp4') ?? -1) > -1))
+        firstPost?.some((p) => isVideoPath(p?.path)))
     ) {
       return 'Carousel can only be created with 2 or more images and no videos.';
     }
 
     if (
       (firstPost?.length ?? 0) > 1 &&
-      firstPost?.some((p) => (p?.path?.indexOf?.('mp4') ?? -1) > -1)
+      firstPost?.some((p) => isVideoPath(p?.path))
     ) {
       return 'Can have maximum 1 media when selecting a video.';
     }
@@ -305,7 +305,7 @@ export class LinkedinProvider extends SocialAbstract implements SocialProvider {
     grace?: boolean;
   }> {
     // Determine the appropriate endpoint based on file type
-    const isVideo = hasExtension(fileName, 'mp4');
+    const isVideo = isVideoPath(fileName);
     const isPdf = hasExtension(fileName, 'pdf');
 
     const fileSizeBytes = Buffer.isBuffer(picture)
@@ -616,7 +616,7 @@ export class LinkedinProvider extends SocialAbstract implements SocialProvider {
           Buffer.isBuffer(media.buffer)
         ) {
           mediaBuffer = (media as any).buffer;
-        } else if (hasExtension(media.path, 'mp4')) {
+        } else if (isVideoPath(media.path)) {
           // Videos are never buffered: uploadPicture streams them from the
           // source chunk-by-chunk.
           mediaBuffer = { path: media.path };

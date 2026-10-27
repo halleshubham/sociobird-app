@@ -135,3 +135,7 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 - `.mov` uploads (multipart, simple, URL import, public API stream) are accepted and stored unchanged; they no longer need the RunPod normalizer (which still converts them to mp4 when configured). `r2.uploader.ts` accepts `.mov`/`video/quicktime` always, and `.mov`/`.mp4` accept either sniffed brand.
 - New `isVideoPath()` (`libraries/helpers/src/utils/has.extension.ts`, mp4 or mov) replaces the `mp4`-only video checks in the editor, media library, previews and the providers. Use it instead of `hasExtension(path, 'mp4')`; `MediaContent.type` is always `'image'`.
 - Not changed: providers that hard-code `video/mp4` as the upload Content-Type (YouTube, Bluesky, TikTok) still send that header for a `.mov`. Platforms that cannot play the codec (e.g. HEVC) may reject it.
+
+## 2026-10-28 — Email defaults and the activation link
+- New users get only failure emails by default: `User.sendSuccessEmails` and `sendStreakEmails` now default to false (`sendFailureEmails` stays true). Existing users keep what they have; they can change it in Settings.
+- The email activation link opened /launches?onboarding=true and the page closed itself: the launches page called `window.close()` whenever `window.opener` was set, and a tab opened from a mail client has an opener. It now only closes the channel-connect popup (URL carries `added` or `msg`).

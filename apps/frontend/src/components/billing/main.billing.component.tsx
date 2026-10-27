@@ -19,7 +19,7 @@ import {
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing.razorpay';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
 import { BillingHistory } from '@gitroom/frontend/components/billing/billing.history.component';
-import { useSWRConfig } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -122,6 +122,11 @@ export const Features: FC<{
           : currentPricing.posts_per_month
       } posts per month`
     );
+    if (currentPricing.metered_posts_per_month) {
+      list.push(
+        `${currentPricing.metered_posts_per_month} X (Twitter) posts per month`
+      );
+    }
     if (currentPricing.team_members) {
       list.push(`Unlimited team members`);
     }
@@ -239,6 +244,32 @@ const Info: FC<{
     </div>
   );
 };
+const useMeteredUsage = () => {
+  const fetch = useFetch();
+  return useSWR<{
+    providers: string[];
+    used: number;
+    limit: number | null;
+  }>('/posts/metered-usage', async () => {
+    return (await fetch('/posts/metered-usage')).json();
+  });
+};
+
+const MeteredUsage: FC = () => {
+  const t = useT();
+  const { data } = useMeteredUsage();
+  if (!data?.providers?.length || data.limit === null) {
+    return null;
+  }
+
+  return (
+    <div className="text-[14px] opacity-80">
+      {t('metered_usage_this_month', 'X (Twitter) posts this month:')}{' '}
+      {data.used} {t('metered_posts_of', 'of')} {data.limit}
+    </div>
+  );
+};
+
 export const MainBillingComponent: FC<{
   sub?: SubscriptionWithPlatform;
 }> = (props) => {
@@ -588,6 +619,7 @@ export const MainBillingComponent: FC<{
   }
   return (
     <div className="flex flex-col gap-[16px]">
+      <MeteredUsage />
       <div className="flex flex-row">
         <div className="flex-1 text-[20px]">{t('plans', 'Plans')}</div>
         {hasCurrencyChoice && (

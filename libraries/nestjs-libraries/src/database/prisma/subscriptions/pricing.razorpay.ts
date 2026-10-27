@@ -12,9 +12,9 @@ export const pricingINR: Record<
   'STANDARD' | 'TEAM' | 'PRO',
   RazorpayPricingInner
 > = {
-  STANDARD: { month_price: 399, year_price: 3830 },
-  TEAM: { month_price: 899, year_price: 8630 },
-  PRO: { month_price: 1799, year_price: 17270 },
+  STANDARD: { month_price: 199, year_price: 1910 },
+  TEAM: { month_price: 449, year_price: 4310 },
+  PRO: { month_price: 899, year_price: 8630 },
 };
 
 export type RazorpayCurrency = 'INR' | 'USD';
@@ -22,9 +22,9 @@ export type RazorpayCurrency = 'INR' | 'USD';
 // International pricing, now that Razorpay is activated for cross-border
 // cards/banks.
 export const pricingUSD: Record<'STANDARD' | 'TEAM' | 'PRO', RazorpayPricingInner> = {
-  STANDARD: { month_price: 5, year_price: 48 },
-  TEAM: { month_price: 11, year_price: 106 },
-  PRO: { month_price: 21, year_price: 202 },
+  STANDARD: { month_price: 3, year_price: 29 },
+  TEAM: { month_price: 5, year_price: 48 },
+  PRO: { month_price: 11, year_price: 106 },
 };
 
 export function hasRazorpayPricing(

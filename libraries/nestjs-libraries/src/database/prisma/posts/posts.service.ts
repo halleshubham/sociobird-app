@@ -51,6 +51,7 @@ import { RefreshToken } from '@gitroom/nestjs-libraries/integrations/social.abst
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { stripLinks } from '@gitroom/helpers/utils/strip.links';
+import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
@@ -618,19 +619,110 @@ export class PostsService {
   // Links are removed from what is published on the providers that ask for it
   // by default (X), unless a superadmin saved a different choice for the
   // organization. Applied right before publishing
+  private async linksAreStripped(orgId: string, providerIdentifier: string) {
+    const { configured, providers } =
+      await this._postRepository.getStripLinksProviders(orgId);
+    return configured
+      ? providers.includes(providerIdentifier)
+      : !!this._integrationManager
+          .getSocialIntegration(providerIdentifier)
+          ?.stripLinksByDefault?.();
+  }
+
+  // Providers that cost us money per post (X) share a monthly allowance that
+  // comes with the plan; a superadmin can override it for one organization
+  private meteredProviders() {
+    return this._integrationManager
+      .getAllowedSocialsIntegrations()
+      .filter(
+        (identifier) =>
+          !!this._integrationManager.getSocialIntegration(identifier)
+            ?.meteredCost
+      );
+  }
+
+  // The posts on metered providers in the month of `date`, what they count
+  // against the allowance, and what the allowance is (null: no limit)
+  public async meteredUsage(
+    orgId: string,
+    date: Date | string = new Date(),
+    excludeIds: string[] = []
+  ) {
+    const providers = this.meteredProviders();
+    const { override, tier } = await this._postRepository.getMeteredAllowance(
+      orgId
+    );
+    const planLimit = pricing[tier]?.metered_posts_per_month ?? 0;
+    const unlimited =
+      !process.env.STRIPE_PUBLISHABLE_KEY && !process.env.RAZORPAY_KEY_ID;
+    const from = dayjs(date).startOf('month');
+    const rows = providers.length
+      ? await this._postRepository.getMeteredPosts(
+          orgId,
+          providers,
+          from.toDate(),
+          from.add(1, 'month').toDate(),
+          excludeIds
+        )
+      : [];
+
+    const stripped: Record<string, boolean> = {};
+    let used = 0;
+    for (const row of rows) {
+      const identifier = row.integration.providerIdentifier;
+      stripped[identifier] ??= await this.linksAreStripped(orgId, identifier);
+      used += this._integrationManager
+        .getSocialIntegration(identifier)
+        .meteredCost!(row.content, stripped[identifier]);
+    }
+
+    return {
+      providers,
+      used,
+      planLimit,
+      override,
+      limit: unlimited ? null : override ?? planLimit,
+    };
+  }
+
+  private async assertMeteredAllowance(
+    orgId: string,
+    providerIdentifier: string,
+    contents: string[],
+    date: Date | string,
+    excludeIds: string[]
+  ) {
+    const provider =
+      this._integrationManager.getSocialIntegration(providerIdentifier);
+    if (!provider?.meteredCost) {
+      return;
+    }
+
+    const usage = await this.meteredUsage(orgId, date, excludeIds);
+    if (usage.limit === null) {
+      return;
+    }
+
+    const stripped = await this.linksAreStripped(orgId, providerIdentifier);
+    const adds = contents.reduce(
+      (sum, content) => sum + provider.meteredCost!(content, stripped),
+      0
+    );
+    if (usage.used + adds > usage.limit) {
+      throw new BadRequestException(
+        usage.limit === 0
+          ? `${provider.name} posting is not included in your plan, please upgrade`
+          : `${provider.name} post allowance reached: ${usage.used} of ${usage.limit} posts used in ${dayjs(date).format('MMMM')}, this post needs ${adds} more. Upgrade your plan or contact support.`
+      );
+    }
+  }
+
   public async removeLinksWhenRequested(
     orgId: string,
     providerIdentifier: string,
     posts: Post[]
   ): Promise<Post[]> {
-    const { configured, providers } =
-      await this._postRepository.getStripLinksProviders(orgId);
-    const strip = configured
-      ? providers.includes(providerIdentifier)
-      : !!this._integrationManager
-          .getSocialIntegration(providerIdentifier)
-          ?.stripLinksByDefault?.();
-    if (!strip) {
+    if (!(await this.linksAreStripped(orgId, providerIdentifier))) {
       return posts;
     }
 
@@ -1017,6 +1109,16 @@ export class PostsService {
         ...p,
         content: removeLinks ? stripLinks(updateContent[i]) : updateContent[i],
       }));
+
+      if (body.type !== 'draft') {
+        await this.assertMeteredAllowance(
+          orgId,
+          (post.settings as any)?.__type,
+          post.value.map((p) => p.content),
+          body.type === 'now' ? new Date() : post.date || body.date,
+          post.value.map((p) => p.id).filter((id) => !!id)
+        );
+      }
 
       const { posts } = await this._postRepository.createOrUpdatePost(
         body.type,

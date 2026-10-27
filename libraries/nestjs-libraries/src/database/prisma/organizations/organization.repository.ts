@@ -278,6 +278,14 @@ export class OrganizationRepository {
     });
   }
 
+  setMeteredPostsOverride(organizationId: string, limit: number | null) {
+    return this._organization.model.organization.update({
+      where: { id: organizationId },
+      data: { meteredPostsOverride: limit },
+      select: { meteredPostsOverride: true },
+    });
+  }
+
   setStripLinksProviders(organizationId: string, providers: string[]) {
     return this._organization.model.organization.update({
       where: { id: organizationId },

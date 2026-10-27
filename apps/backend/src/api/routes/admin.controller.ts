@@ -12,6 +12,8 @@ import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.reque
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { StripLinksDto } from '@gitroom/nestjs-libraries/dtos/admin/strip.links.dto';
+import { MeteredPostsDto } from '@gitroom/nestjs-libraries/dtos/admin/metered.posts.dto';
+import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import { ApiTags } from '@nestjs/swagger';
 import { ErrorsService } from '@gitroom/nestjs-libraries/database/prisma/errors/errors.service';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
@@ -24,7 +26,8 @@ export class AdminController {
     private _errorsService: ErrorsService,
     private _adminStatsService: AdminStatsService,
     private _organizationService: OrganizationService,
-    private _integrationManager: IntegrationManager
+    private _integrationManager: IntegrationManager,
+    private _postsService: PostsService
   ) {}
 
   private assertSuperAdmin(user: User) {
@@ -98,7 +101,19 @@ export class AdminController {
               ?.stripLinksByDefault?.()
           ),
       providers,
+      metered: await this._postsService.meteredUsage(org.id),
     };
+  }
+
+  @Put('/org-settings/metered-posts')
+  async setMeteredPosts(
+    @GetUserFromRequest() user: User,
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: MeteredPostsDto
+  ) {
+    this.assertSuperAdmin(user);
+    await this._organizationService.setMeteredPostsOverride(org.id, body.limit);
+    return this._postsService.meteredUsage(org.id);
   }
 
   @Put('/org-settings/strip-links')

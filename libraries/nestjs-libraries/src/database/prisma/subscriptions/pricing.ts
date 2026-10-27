@@ -5,6 +5,8 @@ export interface PricingInnerInterface {
   year_price: number;
   channel?: number;
   posts_per_month: number;
+  // monthly posts on providers that cost us per post (X)
+  metered_posts_per_month: number;
   team_members: boolean;
   community_features: boolean;
   featured_by_gitroom: boolean;
@@ -33,6 +35,7 @@ export const pricing: PricingInterface = {
     channel: 0,
     image_generation_count: 0,
     posts_per_month: 0,
+    metered_posts_per_month: 0,
     team_members: false,
     community_features: false,
     featured_by_gitroom: false,
@@ -53,6 +56,7 @@ export const pricing: PricingInterface = {
     channel: 2,
     image_generation_count: 0,
     posts_per_month: 1000000,
+    metered_posts_per_month: 0,
     team_members: false,
     community_features: false,
     featured_by_gitroom: false,
@@ -67,10 +71,11 @@ export const pricing: PricingInterface = {
   STANDARD: {
     current: 'STANDARD',
     label: 'Solo',
-    month_price: 5,
-    year_price: 48,
+    month_price: 3,
+    year_price: 29,
     channel: 5,
     posts_per_month: 1000000,
+    metered_posts_per_month: 30,
     image_generation_count: 0,
     team_members: false,
     ai: false,
@@ -86,10 +91,11 @@ export const pricing: PricingInterface = {
   TEAM: {
     current: 'TEAM',
     label: 'Team',
-    month_price: 11,
-    year_price: 106,
+    month_price: 5,
+    year_price: 48,
     channel: 15,
     posts_per_month: 1000000,
+    metered_posts_per_month: 100,
     image_generation_count: 0,
     community_features: true,
     team_members: true,
@@ -105,10 +111,11 @@ export const pricing: PricingInterface = {
   PRO: {
     current: 'PRO',
     label: 'Agency',
-    month_price: 21,
-    year_price: 202,
+    month_price: 11,
+    year_price: 106,
     channel: 40,
     posts_per_month: 1000000,
+    metered_posts_per_month: 300,
     image_generation_count: 0,
     community_features: true,
     team_members: true,
@@ -129,6 +136,7 @@ export const pricing: PricingInterface = {
     year_price: 1429,
     channel: 100,
     posts_per_month: 1000000,
+    metered_posts_per_month: 1000,
     image_generation_count: 0,
     community_features: true,
     team_members: true,

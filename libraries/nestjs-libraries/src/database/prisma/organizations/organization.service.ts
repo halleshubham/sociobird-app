@@ -48,6 +48,13 @@ export class OrganizationService {
     return this._organizationRepository.addUserToOrg(userId, id, orgId, role);
   }
 
+  setMeteredPostsOverride(organizationId: string, limit: number | null) {
+    return this._organizationRepository.setMeteredPostsOverride(
+      organizationId,
+      limit
+    );
+  }
+
   setStripLinksProviders(organizationId: string, providers: string[]) {
     return this._organizationRepository.setStripLinksProviders(
       organizationId,

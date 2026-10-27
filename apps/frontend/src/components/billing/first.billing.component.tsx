@@ -526,6 +526,14 @@ export const BillingFeatures: FC<{ tier: string }> = ({ tier }) => {
           : currentPricing.posts_per_month,
     });
 
+    if (currentPricing.metered_posts_per_month) {
+      list.push({
+        key: 'billing_metered_posts_per_month',
+        defaultValue: 'X (Twitter) posts per month',
+        prefix: currentPricing.metered_posts_per_month,
+      });
+    }
+
     if (currentPricing.team_members) {
       list.push({
         key: 'billing_unlimited_team_members',

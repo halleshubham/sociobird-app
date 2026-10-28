@@ -5,6 +5,12 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ---
 
+## 2026-10-28 (add-channel screen: hide unsupported providers)
+
+- `IntegrationManager.getAllIntegrations` (the add-channel catalog, `GET /public/integrations`-style no-auth list) now drops providers flagged `comingSoon`, so the greyed "Coming soon" tiles are gone. Instagram (Standalone) is flagged `comingSoon` so it is hidden too. Only the add list changes: existing channels, posting, refresh and reconnect for these providers are untouched, and a provider is brought back by removing its `comingSoon` line. `HIDDEN_PROVIDERS` still works for per-environment hiding.
+
+---
+
 ## 2026-10-18 (upstream sync, Oct 2026)
 
 - **Upstream sync `48490b81..7113c6ce`** (88 changes, all decided in `.claude/upstream/ledger.tsv`; `TRIAGED_THROUGH=7113c6ce`). Adopted: both CVE fixes, new creation modal + group schedules + date picker + tags + calendar line + responsive (schema: nullable `Post.batchId`, `Integration.customName`),

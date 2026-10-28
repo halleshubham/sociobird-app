@@ -131,7 +131,9 @@ export class IntegrationManager {
     return {
       social: await Promise.all(
         socialIntegrationList
-          .filter((p) => !this.isHiddenProvider(p.identifier))
+          .filter(
+            (p) => !this.isHiddenProvider(p.identifier) && !p.comingSoon
+          )
           .map(async (p) => ({
             name: p.name,
             identifier: p.identifier,

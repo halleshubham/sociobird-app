@@ -5,6 +5,12 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ---
 
+## 2026-10-29 (billing page: Free plan as visible as the trial)
+
+- `first.billing.component.tsx` (the page new users land on): "Continue with the Free plan (2 channels)" was a small underlined link under the trial button. It is now a full-width secondary `Button` under an "or" divider, the same size as "Start 7 days free trial". Behaviour (`POST /billing/free-plan`) is unchanged.
+
+---
+
 ## 2026-10-28 (add-channel screen: hide unsupported providers)
 
 - `IntegrationManager.getAllIntegrations` (the add-channel catalog, `GET /public/integrations`-style no-auth list) now drops providers flagged `comingSoon`, so the greyed "Coming soon" tiles are gone. Instagram (Standalone) is flagged `comingSoon` so it is hidden too. Only the add list changes: existing channels, posting, refresh and reconnect for these providers are untouched, and a provider is brought back by removing its `comingSoon` line. `HIDDEN_PROVIDERS` still works for per-environment hiding.

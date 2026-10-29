@@ -362,18 +362,17 @@ export const FirstBillingComponent = () => {
                 ? t('start_7_days_free_trial', 'Start 7 days free trial')
                 : t('billing_purchase', 'Purchase')}
             </Button>
-            <div className="text-center text-[14px] text-customColor18">
-              {t('billing_or', 'or')}{' '}
-              <span
-                className="underline cursor-pointer hover:font-[700]"
-                onClick={startFreePlan}
-              >
-                {t(
-                  'billing_continue_free',
-                  `continue with the Free plan (${pricing.FREEPLAN.channel} channels)`
-                )}
-              </span>
+            <div className="flex items-center gap-[12px] text-[14px] text-customColor18">
+              <div className="flex-1 h-[1px] bg-newColColor" />
+              {t('billing_or', 'or')}
+              <div className="flex-1 h-[1px] bg-newColColor" />
             </div>
+            <Button loading={loading} secondary={true} onClick={startFreePlan}>
+              {t(
+                'billing_continue_free',
+                `Continue with the Free plan (${pricing.FREEPLAN.channel} channels)`
+              )}
+            </Button>
           </div>
         </div>
         <div className="flex flex-col ps-[40px] tablet:!ps-[0] border-l border-newColColor py-[40px] mobile:!pt-[24px] tablet:border-none tablet:pb-0">

@@ -548,7 +548,7 @@ export const MainBillingComponent: FC<{
           const razorpayCheckout = new (window as any).Razorpay({
             key: razorpayKeyId,
             subscription_id: razorpaySubscriptionId,
-            name: isGeneral ? 'Postiz' : 'SocioBird',
+            name: 'SocioBird',
             prefill: { email: user?.email },
             handler: () => {
               window.location.href = `/launches?onboarding=true&check=${checkId}`;

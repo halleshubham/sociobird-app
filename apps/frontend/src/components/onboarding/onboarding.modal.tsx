@@ -690,8 +690,7 @@ const OnboardingStep3: FC<{ onBack: () => void; onFinish: () => void }> = ({
   onFinish,
 }) => {
   const t = useT();
-  const { isGeneral } = useVariables();
-  const brand = isGeneral ? 'Postiz' : 'SocioBird';
+  const brand = 'SocioBird';
 
   return (
     <div className="flex flex-col gap-[24px] flex-1">

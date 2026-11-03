@@ -5,7 +5,6 @@ import { ReactNode } from 'react';
 import loadDynamic from 'next/dynamic';
 import { TestimonialComponent } from '@gitroom/frontend/components/auth/testimonial.component';
 import { LogoTextComponent } from '@gitroom/frontend/components/ui/logo-text.component';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
 import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
 import { Toaster } from '@gitroom/react/toaster/toaster';
 const ReturnUrlComponent = loadDynamic(() => import('./return.url.component'));
@@ -33,7 +32,7 @@ export default async function AuthLayout({
             Over <span className="text-[42px] text-[#FC69FF]">20,000+</span>{' '}
             Entrepreneurs use
             <br />
-            {isGeneralServerSide() ? 'Postiz' : 'SocioBird'} To Grow Their
+            {'SocioBird'} To Grow Their
             Social Presence
           </div>
           <TestimonialComponent />

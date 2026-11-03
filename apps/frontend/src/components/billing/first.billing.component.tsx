@@ -62,7 +62,7 @@ const loadRazorpayCheckout = () =>
   });
 
 export const FirstBillingComponent = () => {
-  const { currency, newUserDiscountEnabled, razorpayKeyId, isGeneral } =
+  const { currency, newUserDiscountEnabled, razorpayKeyId } =
     useVariables();
   // Razorpay is now activated for USD too, so instances running it get an
   // INR/USD toggle here - same as the main billing page. Stripe-only
@@ -178,7 +178,7 @@ export const FirstBillingComponent = () => {
       const razorpayCheckout = new (window as any).Razorpay({
         key: razorpayKeyId,
         subscription_id: razorpaySubscriptionId,
-        name: isGeneral ? 'Postiz' : 'SocioBird',
+        name: 'SocioBird',
         prefill: { email: user?.email },
         handler: () => {
           window.location.href = `/launches?onboarding=true&check=${checkId}`;
@@ -196,12 +196,12 @@ export const FirstBillingComponent = () => {
 
   const showYouTube = () => {
     modals.openModal({
-      title: `Grow Fast With ${isGeneral ? 'Postiz' : 'SocioBird'} (Play the video)`,
+      title: `Grow Fast With ${'SocioBird'} (Play the video)`,
       children: (
         <iframe
           className="h-full aspect-video min-w-[800px]"
           src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
-          title={`${isGeneral ? 'Postiz' : 'SocioBird'} Tutorial`}
+          title={`${'SocioBird'} Tutorial`}
           allow="autoplay"
           allowFullScreen
         />
@@ -228,7 +228,7 @@ export const FirstBillingComponent = () => {
           {t('billing_who_use', 'who use')}{' '}
           {t(
             'billing_postiz_grow_social',
-            `${isGeneral ? 'Postiz' : 'SocioBird'} To Grow Their Social Presence`
+            `${'SocioBird'} To Grow Their Social Presence`
           )}
         </div>
 
@@ -243,7 +243,7 @@ export const FirstBillingComponent = () => {
                 alt="YouTube"
               />
             </div>
-            <div>See the power of {isGeneral ? 'Postiz' : 'SocioBird'} (click here)</div>
+            <div>See the power of {'SocioBird'} (click here)</div>
           </div>
         </div>
 

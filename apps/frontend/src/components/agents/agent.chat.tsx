@@ -40,7 +40,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
 
 export const AgentChat: FC = () => {
-  const { backendUrl, isGeneral } = useVariables();
+  const { backendUrl } = useVariables();
   const params = useParams<{ id: string }>();
   const { properties } = useContext(PropertiesContext);
   const t = useT();
@@ -72,7 +72,7 @@ export const AgentChat: FC = () => {
             className="w-full h-full"
             labels={{
               title: t('your_assistant', 'Your Assistant'),
-              initial: t('agent_welcome_message', `Hello, I am your ${isGeneral ? 'Postiz' : 'SocioBird'} agent 🙌🏻.
+              initial: t('agent_welcome_message', `Hello, I am your ${'SocioBird'} agent 🙌🏻.
               
 I can schedule a post or multiple posts to multiple channels and generate pictures and videos.
 

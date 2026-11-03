@@ -100,3 +100,5 @@ Decisions per upstream change are in `ledger.tsv` (key = PR number or sha), proo
 **Deferred (ask again next sync):** Mastra table mirror in `schema.prisma` (needs the Mastra 1.21 to 1.67 upgrade; today `db push --accept-data-loss` can drop Mastra tables the schema does not mirror),
 TikTok publish fixes (TikTok is coming-soon), inline pictures in the editor (flags are off; needs X article backend), `autopost`/`missing-post` continue-as-new and the send-email workflow (need NEW versioned workflows),
 and about 13 vaguely named upstream commits listed as `deferred` in the ledger.
+
+**Brand name is fixed to SocioBird in the web UI (November 2026).** Upstream writes `isGeneral ? 'Postiz' : 'SocioBird'` in several components (logout, auth layout, agent chat, billing, onboarding modal, Razorpay checkout name); in production `isGeneral` is true, so users saw "Postiz". We replaced those with the literal `SocioBird`. When syncing upstream changes that touch those lines, keep ours.

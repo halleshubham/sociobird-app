@@ -5,6 +5,13 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ---
 
+## 2026-11-03 (web app said "Postiz" instead of SocioBird)
+
+- The settings-page logout ("Logout from Postiz") and a few other texts used `isGeneral ? 'Postiz' : 'SocioBird'`. In production `isGeneral` is true (it is the layout-mode flag: calendar vs analytics landing page, hides the FREE plan, etc.), so it picked "Postiz". The brand is now the fixed string `SocioBird` in `logout.component.tsx`, `auth/layout.tsx`, `agent.chat.tsx`, `new-layout/billing.after.tsx`, `onboarding.modal.tsx` (brand constant), `first.billing.component.tsx`, `main.billing.component.tsx` and `purchase.lifetime.razorpay.tsx` (Razorpay checkout name). `isGeneral` itself is unchanged and still drives layout behaviour.
+- Left alone on purpose: Postiz CLI/skill/MCP instructions in `onboarding.modal.tsx` and `public.component.tsx` (they name the real `postiz` CLI package), the browser-extension and "another Postiz account" notices, and the AgentMedia note. Revisit when those get SocioBird equivalents.
+
+---
+
 ## 2026-10-29 (billing page: Free plan as visible as the trial)
 
 - `first.billing.component.tsx` (the page new users land on): "Continue with the Free plan (2 channels)" was a small underlined link under the trial button. It is now a full-width secondary `Button` under an "or" divider, the same size as "Start 7 days free trial". Behaviour (`POST /billing/free-plan`) is unchanged.

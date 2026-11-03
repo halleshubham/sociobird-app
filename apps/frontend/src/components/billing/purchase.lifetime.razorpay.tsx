@@ -30,7 +30,7 @@ export const PurchaseLifetimeRazorpay: FC = () => {
   const t = useT();
   const toast = useToaster();
   const { mutate } = useSWRConfig();
-  const { razorpayKeyId, isGeneral } = useVariables();
+  const { razorpayKeyId } = useVariables();
   const user = useUser();
   const [loading, setLoading] = useState(false);
 
@@ -60,7 +60,7 @@ export const PurchaseLifetimeRazorpay: FC = () => {
       order_id: orderId,
       amount,
       currency,
-      name: isGeneral ? 'Postiz' : 'SocioBird',
+      name: 'SocioBird',
       description: 'Lifetime PRO account',
       prefill: { email: user?.email },
       handler: async (response: {

@@ -70,6 +70,11 @@ async function start() {
 
   const port = process.env.PORT || 3000;
 
+  // MCP/OAuth routes must be registered before listen(): Nest adds its 404
+  // handler on init, so routes added afterwards are never reached. Tool loading
+  // inside startMcp is lazy and does not block listening.
+  startMcp(app);
+
   try {
     await app.listen(port);
     console.log('Backend started successfully on port ' + port);
@@ -80,17 +85,6 @@ async function start() {
   } catch (e) {
     Logger.error(`Backend failed to start on port ${port}`, e);
   }
-
-  // Deliberately not awaited, and started after app.listen(): this loads
-  // every agent tool's .run() (dozens of them) with no timeout, so a single
-  // slow/hung tool (e.g. an external API call still recovering from a
-  // Redis/Postgres disruption) previously blocked app.listen() forever,
-  // taking down the entire API - login included - for something that only
-  // the AI agent/MCP routes actually need. Express allows registering routes
-  // after listen(), so this is safe to run in the background.
-  startMcp(app).catch((e) => {
-    Logger.error('Failed to start MCP server', e);
-  });
 }
 
 function checkConfiguration() {

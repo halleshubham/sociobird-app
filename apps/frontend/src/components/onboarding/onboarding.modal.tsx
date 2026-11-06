@@ -289,7 +289,7 @@ const getCursorInstallUrl = (
           url: `${mcpBase}/mcp`,
           headers: { Authorization: `Bearer ${apiKey}` },
         };
-  return `cursor://anysphere.cursor-deeplink/mcp/install?name=postiz&config=${btoa(
+  return `cursor://anysphere.cursor-deeplink/mcp/install?name=sociobird&config=${btoa(
     JSON.stringify(server)
   )}`;
 };
@@ -300,7 +300,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
 }) => {
   const t = useT();
   const user = useUser();
-  const { backendUrl, mcpUrl, billingEnabled } = useVariables();
+  const { backendUrl, mcpUrl } = useVariables();
   const [tab, setTab] = useState<OnboardingTab>('Claude');
   const [otherAgent, setOtherAgent] = useState<McpClient>(otherAgents[0]);
   // The client the cards describe: the tab itself, or the pick inside "Other agents"
@@ -326,12 +326,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         );
 
   const connector =
-    agent === 'Claude' && billingEnabled
-      ? {
-          href: 'https://claude.ai/directory/postiz',
-          label: t('add_to_claude', 'Add to Claude'),
-        }
-      : agent === 'Cursor'
+    agent === 'Cursor'
       ? {
           href: getCursorInstallUrl(auth, mcpBase, apiKey),
           label: t('add_to_cursor', 'Add to Cursor'),
@@ -347,7 +342,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="text-[13px] text-customColor18 mt-[2px]">
           {t(
             'chat_onboarding_description',
-            'No MCP or CLI settings needed. Paste this into the chat, the agent installs the Postiz CLI and asks you for your API key.'
+            'No MCP or CLI settings needed. Paste this into the chat, the agent installs the CLI and asks you for your SocioBird API key.'
           )}
         </div>
       </div>
@@ -392,7 +387,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
           <div className="text-[13px] text-customColor18 mt-[2px]">
             {t(
               'api_onboarding_description',
-              'Use the Postiz API from your own code, n8n or any other automation'
+              'Use the SocioBird API from your own code, n8n or any other automation'
             )}
           </div>
         </div>
@@ -445,7 +440,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="text-[13px] text-customColor18 mt-[2px]">
           {t(
             'connector_onboarding_description',
-            'The fastest way: add Postiz with one click, you will be asked to sign in'
+            'The fastest way: add SocioBird with one click, you will be asked to sign in'
           )}
         </div>
       </div>
@@ -467,7 +462,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="text-[13px] text-customColor18 mt-[2px]">
           {t(
             'mcp_onboarding_description',
-            'Give your agent Postiz tools to create, schedule and manage posts'
+            'Give your agent SocioBird tools to create, schedule and manage posts'
           )}
         </div>
       </div>
@@ -490,7 +485,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
                 onClick={() => setAuth(m)}
               >
                 {m === 'oauth'
-                  ? t('sign_in_no_api_key', 'Sign in with Postiz (no API key)')
+                  ? t('sign_in_no_api_key', 'Sign in with SocioBird (no API key)')
                   : t('api_key', 'API Key')}
               </button>
             ))}
@@ -502,7 +497,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
             {auth === 'oauth' &&
               ` ${t(
                 'oauth_sign_in_hint',
-                'Your agent will open a browser window to sign in to Postiz.'
+                'Your agent will open a browser window to sign in to SocioBird.'
               )}`}
           </div>
           <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[12px] text-[12px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.5]">
@@ -532,7 +527,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="text-[13px] text-customColor18 mt-[2px]">
           {t(
             'cli_onboarding_description',
-            'Install the Postiz CLI and the skill that teaches your agent how to use it'
+            'Install the CLI and the skill that teaches your agent how to use it'
           )}
         </div>
       </div>

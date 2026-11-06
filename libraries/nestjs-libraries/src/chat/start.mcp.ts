@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { MastraService } from '@gitroom/nestjs-libraries/chat/mastra.service';
 import { LoadToolsService } from '@gitroom/nestjs-libraries/chat/load.tools.service';
@@ -27,7 +27,7 @@ const oauthScopes = [
   'mcp:write',
 ];
 
-export const startMcp = async (app: INestApplication) => {
+export const startMcp = (app: INestApplication) => {
   const mastraService = app.get(MastraService, { strict: false });
   const organizationService = app.get(OrganizationService, { strict: false });
   const oauthService = app.get(OAuthService, { strict: false });
@@ -42,70 +42,92 @@ export const startMcp = async (app: INestApplication) => {
     return organizationService.getOrgByApiKey(token);
   };
 
-  const mastra = await mastraService.mastra();
-  const agent = mastra.getAgent('postiz');
-  const tools = {
-    ...(await agent.listTools()),
-    // tools that only make sense inside an MCP host (ui:// widgets)
-    ...(await loadToolsService.loadTools(true)),
-  };
-
-  // The Claude connector directory does not accept AI media generation tools,
-  // so the directory-facing endpoint hides them. Direct connections
-  // (/mcp, /mcp/:id, /sse/:id) and the ChatGPT app keep the full toolset.
-  const claudeHiddenTools = [
-    'generateImageTool',
-    'generateVideoTool',
-    'videoStatusTool',
-    'generateVideoOptions',
-    'videoFunctionTool',
-  ];
-  const claudeTools = Object.fromEntries(
-    Object.entries(tools).filter(([name]) => !claudeHiddenTools.includes(name))
-  ) as typeof tools;
-
   const backendUrl = process.env.NEXT_PUBLIC_OVERRIDE_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  // MCP Apps widgets (ui:// resources). They run in the host's sandboxed iframe,
-  // which can only reach the domains listed in the csp
-  const appResources = {
-    [UPLOAD_WIDGET_URI]: {
-      name: 'Upload Media',
-      description: 'Upload an image or video from the device to the media library',
-      html: uploadWidgetHtml(backendUrl!),
-      meta: {
-        csp: { connectDomains: [new URL(backendUrl!).origin] },
-        prefersBorder: true,
+  // The routes below are registered synchronously, BEFORE app.listen(): Nest
+  // adds its catch-all 404 handler when the app initialises, so anything
+  // registered after listen() is never reached. Only the slow part (loading
+  // every agent tool) is lazy, so a hung tool can still not block the API
+  // from listening - it only delays MCP requests.
+  const buildServers = async () => {
+    const mastra = await mastraService.mastra();
+    const agent = mastra.getAgent('postiz');
+    const tools = {
+      ...(await agent.listTools()),
+      // tools that only make sense inside an MCP host (ui:// widgets)
+      ...(await loadToolsService.loadTools(true)),
+    };
+
+    // The Claude connector directory does not accept AI media generation tools,
+    // so the directory-facing endpoint hides them. Direct connections
+    // (/mcp, /mcp/:id, /sse/:id) and the ChatGPT app keep the full toolset.
+    const claudeHiddenTools = [
+      'generateImageTool',
+      'generateVideoTool',
+      'videoStatusTool',
+      'generateVideoOptions',
+      'videoFunctionTool',
+    ];
+    const claudeTools = Object.fromEntries(
+      Object.entries(tools).filter(([name]) => !claudeHiddenTools.includes(name))
+    ) as typeof tools;
+
+    // MCP Apps widgets (ui:// resources). They run in the host's sandboxed iframe,
+    // which can only reach the domains listed in the csp
+    const appResources = {
+      [UPLOAD_WIDGET_URI]: {
+        name: 'Upload Media',
+        description: 'Upload an image or video from the device to the media library',
+        html: uploadWidgetHtml(backendUrl!),
+        meta: {
+          csp: { connectDomains: [new URL(backendUrl!).origin] },
+          prefersBorder: true,
+        },
       },
-    },
+    };
+
+    const serverConfig = {
+      name: 'SocioBird MCP',
+      version: '1.0.0',
+      tools,
+      agents: { postiz: agent },
+      appResources,
+    };
+
+    return {
+      serverConfig,
+      server: new MCPServer(serverConfig),
+      // The directory-facing servers don't register the agent - it would be
+      // exposed as an annotation-less catch-all ask_postiz tool, which the
+      // ChatGPT and Claude directory reviews reject
+      oauthServer: new MCPServer({
+        name: 'SocioBird MCP',
+        version: '1.0.0',
+        tools,
+        appResources,
+      }),
+      claudeOauthServer: new MCPServer({
+        name: 'SocioBird MCP',
+        version: '1.0.0',
+        tools: claudeTools,
+        appResources,
+      }),
+    };
   };
 
-  const serverConfig = {
-    name: 'Postiz MCP',
-    version: '1.0.0',
-    tools,
-    agents: { postiz: agent },
-    appResources,
+  type Servers = Awaited<ReturnType<typeof buildServers>>;
+  let serversPromise: Promise<Servers> | undefined;
+  const getServers = (): Promise<Servers> => {
+    if (!serversPromise) {
+      serversPromise = buildServers().catch((e) => {
+        serversPromise = undefined; // retry on the next request
+        throw e;
+      });
+    }
+    return serversPromise;
   };
-
-  const server = new MCPServer(serverConfig);
-
-  // The directory-facing servers don't register the agent - it would be
-  // exposed as an annotation-less catch-all ask_postiz tool, which the
-  // ChatGPT and Claude directory reviews reject
-  const oauthServer = new MCPServer({
-    name: 'Postiz MCP',
-    version: '1.0.0',
-    tools,
-    appResources,
-  });
-
-  const claudeOauthServer = new MCPServer({
-    name: 'Postiz MCP',
-    version: '1.0.0',
-    tools: claudeTools,
-    appResources,
-  });
+  // Warm up in the background so the first MCP request is not slow
+  getServers().catch((e) => Logger.error('Failed to start MCP server', e));
 
   // Two RFC 8414 path-based issuers backed by the same endpoints and code.
   // /mcp-oauth-chatgpt is what the ChatGPT app submission points at: it does
@@ -166,17 +188,17 @@ export const startMcp = async (app: INestApplication) => {
 
   const oauthResources: Record<
     string,
-    { middleware: ReturnType<typeof createOAuthMiddleware>; mcpServer: MCPServer }
+    { middleware: ReturnType<typeof createOAuthMiddleware>; serverKey: 'oauthServer' | 'claudeOauthServer' }
   > = {
     // ChatGPT app submission (pre-defined client credentials, no DCR)
-    '/mcp-oauth-chatgpt': { middleware: createResourceMiddleware('/mcp-oauth-chatgpt', '/mcp-oauth-chatgpt'), mcpServer: oauthServer },
+    '/mcp-oauth-chatgpt': { middleware: createResourceMiddleware('/mcp-oauth-chatgpt', '/mcp-oauth-chatgpt'), serverKey: 'oauthServer' },
     // Former ChatGPT path, kept for connectors that were created against it
-    '/mcp-oauth': { middleware: createResourceMiddleware('/mcp-oauth', '/mcp-oauth-dynamic'), mcpServer: oauthServer },
+    '/mcp-oauth': { middleware: createResourceMiddleware('/mcp-oauth', '/mcp-oauth-dynamic'), serverKey: 'oauthServer' },
     // Claude connector directory submission
-    '/mcp-oauth-claude': { middleware: createResourceMiddleware('/mcp-oauth-claude', '/mcp-oauth-dynamic'), mcpServer: claudeOauthServer },
+    '/mcp-oauth-claude': { middleware: createResourceMiddleware('/mcp-oauth-claude', '/mcp-oauth-dynamic'), serverKey: 'claudeOauthServer' },
     // Clients that register themselves through DCR (/oauth/register) - not
     // directory-reviewed, so they get the full toolset (media generation included)
-    '/mcp-oauth-dynamic': { middleware: createResourceMiddleware('/mcp-oauth-dynamic', '/mcp-oauth-dynamic'), mcpServer: oauthServer },
+    '/mcp-oauth-dynamic': { middleware: createResourceMiddleware('/mcp-oauth-dynamic', '/mcp-oauth-dynamic'), serverKey: 'oauthServer' },
   };
 
   if (process.env.OPENAI_APP_CHALLANGE) {
@@ -252,7 +274,7 @@ export const startMcp = async (app: INestApplication) => {
     }
 
     // baseUrl is the mount path that matched, e.g. /mcp-oauth-claude
-    const { middleware, mcpServer } = oauthResources[req.baseUrl];
+    const { middleware, serverKey } = oauthResources[req.baseUrl];
     const url = new URL(req.baseUrl, process.env.NEXT_PUBLIC_BACKEND_URL);
 
     const result = await middleware(req, res, url);
@@ -265,9 +287,10 @@ export const startMcp = async (app: INestApplication) => {
       return;
     }
 
+    const servers = await getServers();
     fixAcceptHeader(req);
     await runWithContext({ requestId: token!, auth }, async () => {
-      await mcpServer.startHTTP({
+      await servers[serverKey].startHTTP({
         url: url,
         httpPath: url.pathname,
         options: {
@@ -314,6 +337,7 @@ export const startMcp = async (app: INestApplication) => {
 
     const url = new URL('/mcp', process.env.NEXT_PUBLIC_BACKEND_URL);
 
+    const { server } = await getServers();
     fixAcceptHeader(req);
     // @ts-ignore
     await runWithContext({ requestId: token, auth: req.auth }, async () => {
@@ -355,6 +379,7 @@ export const startMcp = async (app: INestApplication) => {
       process.env.NEXT_PUBLIC_BACKEND_URL
     );
 
+    const { server } = await getServers();
     fixAcceptHeader(req);
     await runWithContext(
       // @ts-ignore
@@ -396,6 +421,7 @@ export const startMcp = async (app: INestApplication) => {
 
     const url = new URL(req.originalUrl, process.env.NEXT_PUBLIC_BACKEND_URL);
 
+    const { serverConfig } = await getServers();
     await runWithContext(
       // @ts-ignore
       { requestId: req.params.id, auth: req.auth },

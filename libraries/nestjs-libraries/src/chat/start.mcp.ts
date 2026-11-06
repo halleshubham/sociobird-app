@@ -44,6 +44,12 @@ export const startMcp = (app: INestApplication) => {
 
   const backendUrl = process.env.NEXT_PUBLIC_OVERRIDE_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
 
+  // Public URL of an MCP path. NEXT_PUBLIC_BACKEND_URL can carry a path prefix
+  // (https://go.sociobird.app/api), which `new URL('/x', base)` would drop: the
+  // advertised resource/issuer must be the URL the client actually connects to.
+  const publicUrl = (path: string) =>
+    `${process.env.NEXT_PUBLIC_BACKEND_URL!.replace(/\/+$/, '')}${path}`;
+
   // The routes below are registered synchronously, BEFORE app.listen(): Nest
   // adds its catch-all 404 handler when the app initialises, so anything
   // registered after listen() is never reached. Only the slow part (loading
@@ -138,11 +144,11 @@ export const startMcp = (app: INestApplication) => {
   // self-registering client
   const authorizationServers: Record<string, { issuer: string; registration: boolean }> = {
     '/mcp-oauth-chatgpt': {
-      issuer: new URL('/mcp-oauth-chatgpt', process.env.NEXT_PUBLIC_BACKEND_URL!).toString(),
+      issuer: publicUrl('/mcp-oauth-chatgpt'),
       registration: false,
     },
     '/mcp-oauth-dynamic': {
-      issuer: new URL('/mcp-oauth-dynamic', process.env.NEXT_PUBLIC_BACKEND_URL!).toString(),
+      issuer: publicUrl('/mcp-oauth-dynamic'),
       registration: true,
     },
   };
@@ -172,7 +178,7 @@ export const startMcp = (app: INestApplication) => {
   const createResourceMiddleware = (mcpPath: string, authorizationServer: string) =>
     createOAuthMiddleware({
       oauth: {
-        resource: new URL(mcpPath, process.env.NEXT_PUBLIC_BACKEND_URL!).toString(),
+        resource: publicUrl(mcpPath),
         authorizationServers: [authorizationServers[authorizationServer].issuer],
         scopesSupported: oauthScopes,
         validateToken: async (token: string) => {

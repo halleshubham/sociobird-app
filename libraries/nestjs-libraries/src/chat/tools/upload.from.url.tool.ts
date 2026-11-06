@@ -13,7 +13,8 @@ export class UploadFromUrlTool implements AgentToolInterface {
   run() {
     return createTool({
       id: 'uploadFromUrlTool',
-      description: `Upload a remote image or video into the media library from a public URL.
+      description: `Upload a remote image or video into the media library from a public http(s) URL.
+Local or private files cannot be fetched by this tool: the user can upload them with the upload widget (uploadWidgetTool), the SocioBird app, or the public API (POST /public/v1/upload with an API key).
 Use this before scheduling a post when the user provides an external media URL (not already hosted on our domain),
 so the attachment passes the upload-domain validation. Returns the hosted media { id, path } to use as an attachment, or { error } on failure.`,
       mcp: {
@@ -29,7 +30,9 @@ so the attachment passes the upload-domain validation. Returns the hosted media 
         url: z
           .string()
           .url()
-          .describe('The public URL of the image or video to upload'),
+          .describe(
+            'The public http(s) URL of the image or video to upload. Local files and private hosts are not supported, use uploadWidgetTool or POST /public/v1/upload instead'
+          ),
       }),
       // Mastra validates a tool's return against this schema, so it must also
       // allow the graceful { error } shape. Fields are optional (rather than
@@ -68,7 +71,7 @@ so the attachment passes the upload-domain validation. Returns the hosted media 
           const causeText = causes.length ? ` (${causes.join(': ')})` : '';
 
           return {
-            error: `Failed to upload media from URL: ${message}${causeText}`,
+            error: `Failed to upload media from URL: ${message}${causeText}. Only public http(s) URLs work: local or private files go through the upload widget or the public API (POST /public/v1/upload with an API key)`,
           };
         }
       },

@@ -836,7 +836,9 @@ export const Subscription = () => {
         .filter((f) => !f.includes('FREE'))
         .map((key) => (
           <option key={key} value={key}>
-            {key}
+            {`${pricing[key as keyof typeof pricing].label} (${
+              pricing[key as keyof typeof pricing].channel
+            } channels)`}
           </option>
         ))}
     </Select>

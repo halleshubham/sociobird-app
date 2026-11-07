@@ -57,6 +57,16 @@ export class AuthMiddleware implements NestMiddleware {
         throw new HttpForbiddenException();
       }
 
+      // A token issued before the user's sessionsValidFrom (set when an admin
+      // swapped logins) is no longer valid: the user must sign in again.
+      // iat is in whole seconds, so compare at second precision.
+      if (user.sessionsValidFrom) {
+        const issuedAt = Number((payload as any).iat) || 0;
+        if (issuedAt < Math.floor(user.sessionsValidFrom.getTime() / 1000)) {
+          throw new HttpForbiddenException();
+        }
+      }
+
       const impersonate = req.cookies.impersonate || req.headers.impersonate;
       if (user?.isSuperAdmin && impersonate) {
         const loadImpersonate = await this._organizationService.getUserOrg(

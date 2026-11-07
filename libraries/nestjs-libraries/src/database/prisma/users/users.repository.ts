@@ -48,6 +48,12 @@ export class UsersRepository {
       activated: target.activated,
     };
 
+    // Login tokens carry the user id, not the email, so after the swap a token
+    // issued before it (or one issued while the logins were crossed and kept
+    // afterwards) would keep opening the account it was issued for, now behind
+    // the other person's login. Reject every token issued before this moment.
+    const sessionsValidFrom = new Date();
+
     // (email, providerName) is unique and checked per-statement, so park the
     // current user on a throwaway email first, then fill each freed slot
     await this._transaction.model.$transaction([
@@ -57,11 +63,11 @@ export class UsersRepository {
       }),
       this._user.model.user.update({
         where: { id: target.id },
-        data: currentCredentials,
+        data: { ...currentCredentials, sessionsValidFrom },
       }),
       this._user.model.user.update({
         where: { id: current.id },
-        data: targetCredentials,
+        data: { ...targetCredentials, sessionsValidFrom },
       }),
     ]);
 

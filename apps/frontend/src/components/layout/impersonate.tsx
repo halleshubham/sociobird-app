@@ -1099,6 +1099,7 @@ const SwitchUser = () => {
     id: string;
     name: string;
     email: string;
+    orgs?: string;
   } | null>(null);
   const [switching, setSwitching] = useState(false);
 
@@ -1148,10 +1149,11 @@ const SwitchUser = () => {
   }, [data, currentUser?.id]);
 
   const pick = useCallback(
-    (item: { id: string; name: string; email: string }) => () => {
-      setSelected(item);
-      setName('');
-    },
+    (item: { id: string; name: string; email: string; orgs?: string }) =>
+      () => {
+        setSelected(item);
+        setName('');
+      },
     []
   );
 
@@ -1163,7 +1165,7 @@ const SwitchUser = () => {
       !(await deleteDialog(
         t(
           'switch_user_confirm',
-          `This will replace the current account's login with ${selected.email}. All data and the subscription stay with the account — only the login changes, and the new login gains its full access. Switch back to revert.`
+          `This swaps the logins of two accounts. Account being impersonated: ${currentUser?.email}. Account to swap with: ${selected.email} (${selected.orgs || 'no workspace'}). Afterwards, signing in as ${selected.email} opens the workspace that is now behind ${currentUser?.email}, and signing in as ${currentUser?.email} opens the workspace of ${selected.email}. No data moves. Both accounts are signed out on every device and must sign in again. Swap again to revert.`
         ),
         t('yes_switch', 'Yes, switch'),
         t('switch_user_title', 'Switch User?'),

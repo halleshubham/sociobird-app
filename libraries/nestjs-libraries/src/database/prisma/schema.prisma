@@ -105,6 +105,9 @@ model User {
   connectedAccount      Boolean              @default(false)
   phone                 String?
   lastOnline            DateTime             @default(now())
+  // Login tokens issued before this moment are rejected (set when an admin swaps
+  // two accounts' logins, so no old session keeps acting as the swapped account)
+  sessionsValidFrom     DateTime?
   ip                    String?
   agent                 String?
   deletedAt             DateTime?

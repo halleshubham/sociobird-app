@@ -209,3 +209,9 @@ PR numbers are in `halleshubham/sociobird-app` unless a repo is named. Add yours
 
 ## 2026-11-07 — Admin "ADD FREE SUBSCRIPTION" shows plan names
 - The impersonation bar's dropdown listed the internal `pricing.ts` keys (STANDARD, TEAM, PRO, ULTIMATE), which do not match the plans on the billing page (Solo, Team, Agency, Scale). Options now read `<label> (<channels> channels)` from `pricing.ts`; the posted value is still the key, so `/billing/add-subscription` is unchanged. Mapping: STANDARD=Solo (5), TEAM=Team (15), PRO=Agency (40), ULTIMATE=Scale (100).
+
+## 2026-11-07 — Switch User invalidates sessions (account/workspace mismatch after a login swap)
+- **Incident:** an admin used Switch User (`POST /user/switch`) on two accounts on 2 Nov, then swapped back on 7 Nov. In between, one customer signed in (Google login resolves the user by `providerId`, which the swap moves) and got a login token for the other account's user row. Tokens carry the user id, are signed without expiry and the `auth` cookie lasts a year, and `AuthMiddleware` only reads `payload.id`. After the swap back, that token kept opening the other person's workspace: she deleted the owner's three channels and connected her own business pages in it.
+- **Fix:** `User.sessionsValidFrom` (nullable, additive; `prisma db push` adds it on start). `switchUserCredentials` sets it to now on both rows in the same transaction; `AuthMiddleware` rejects a token whose `iat` is before it (same path as a deleted user: 403, cookie cleared, `logout` header, the browser lands on the login page). Users with a null value are unaffected.
+- The Switch User dialog now names both accounts and the workspace of the target, and says both are signed out everywhere.
+- Data repair for the incident is a manual SQL step (restore the three soft-deleted channels, move the seven new ones back); see the PR description.

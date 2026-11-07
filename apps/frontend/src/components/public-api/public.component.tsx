@@ -452,12 +452,17 @@ export const localCliSteps = [
     code: 'npm install -g postiz',
   },
   {
+    label:
+      'Remove any saved Postiz Cloud login (auth:login does not work with SocioBird and would override the settings below)',
+    code: 'postiz auth:logout',
+  },
+  {
     label: 'Point the CLI at SocioBird',
     code: 'export POSTIZ_API_URL="https://go.sociobird.app/api"',
   },
   {
-    label: 'Run: postiz auth:login (or set POSTIZ_API_KEY to your API key)',
-    code: 'postiz auth:login',
+    label: 'Set your SocioBird API key (shown in the CI / Remote servers tab)',
+    code: 'export POSTIZ_API_KEY="<your-api-key>"',
   },
   {
     label: 'Install the agent skill for your AI agent',
@@ -518,14 +523,14 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
           <div className="text-[13px] text-customColor18 mt-[2px]">
             {t(
               'cli_description',
-              'Use the Postiz-compatible CLI to automate posting from your terminal, or install the skill to let your AI agent schedule posts for you.'
+              'Use the Postiz CLI with your SocioBird API key to automate posting from your terminal, or install the skill to let your AI agent schedule posts for you. Not supported on SocioBird: auth:login, media:status and the clipping commands.'
             )}
           </div>
         </div>
         <div className="flex gap-[6px] shrink-0 pt-[2px]">
           <a
             className="cursor-pointer px-[16px] h-[36px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-            href="https://docs.postiz.com/cli/introduction"
+            href="https://github.com/gitroomhq/postiz-agent"
             target="_blank"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>

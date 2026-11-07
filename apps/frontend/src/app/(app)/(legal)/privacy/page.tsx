@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
   return (
     <>
       <h1 className="text-[28px] font-semibold mb-[8px]">Privacy Policy</h1>
-      <P>Last updated: 27 September 2026</P>
+      <P>Last updated: 7 November 2026</P>
 
       <P>
         SocioBird (&quot;SocioBird&quot;, &quot;we&quot;, &quot;us&quot; or &quot;our&quot;) is a
@@ -81,13 +81,11 @@ export default function PrivacyPolicyPage() {
       <Ul>
         <li>
           <strong>YouTube Data API</strong> (
-          <code>youtube</code>, <code>youtube.upload</code>,{' '}
-          <code>youtube.force-ssl</code>, <code>youtube.readonly</code>,{' '}
-          <code>youtubepartner</code>) — to list your channel and existing
-          videos so you can pick where to publish, to upload and publish the
-          videos you schedule through SocioBird on your behalf, and to set
-          their title, description, thumbnail, and privacy status as you
-          configure them.
+          <code>youtube.upload</code>, <code>youtube.readonly</code>) — to
+          read your channel details and video statistics so you can pick
+          where to publish, and to upload and publish the videos you
+          schedule through SocioBird on your behalf and set their title,
+          description, thumbnail, and privacy status as you configure them.
         </li>
         <li>
           <strong>YouTube Analytics API</strong> (
@@ -149,13 +147,16 @@ export default function PrivacyPolicyPage() {
       </P>
       <P>
         We store the OAuth access and refresh tokens for your connected
-        Google account (encrypted at rest) for as long as the channel stays
-        connected, plus the channel/location metadata and post-level
-        analytics described above. Disconnecting a channel from your
-        SocioBird settings immediately revokes the token with Google and
-        deletes it, along with the associated cached metadata, from our
-        database. You can also revoke SocioBird's access at any time
-        directly from your{' '}
+        Google account in our database, with access limited to the service,
+        for as long as the channel stays connected, plus the channel/location
+        metadata (name and picture) and post-level analytics described above.
+        Disconnecting a channel from your SocioBird settings revokes the token
+        with Google and clears it from our database straight away. The
+        channel's name, picture, and analytics for the posts we published stay
+        with your account's history until you delete your account; if you would
+        like them removed sooner, or you revoke SocioBird's access at Google,
+        write to us and we delete the data we hold for that channel within 7
+        days. You can revoke SocioBird's access at any time directly from your{' '}
         <a
           href="https://myaccount.google.com/permissions"
           className="underline"
@@ -164,7 +165,18 @@ export default function PrivacyPolicyPage() {
         >
           Google Account permissions page
         </a>
-        , independently of this app.
+        , independently of this app. When you delete your account, the stored
+        tokens are irreversibly overwritten. SocioBird's use of the YouTube API
+        Services is also subject to the{' '}
+        <a
+          href="https://policies.google.com/privacy"
+          className="underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Google Privacy Policy
+        </a>
+        .
       </P>
 
       <H3>2.4 Content you create or upload</H3>

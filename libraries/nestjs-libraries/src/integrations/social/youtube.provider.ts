@@ -65,13 +65,24 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   scopes = [
     'https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/youtube',
-    'https://www.googleapis.com/auth/youtube.force-ssl',
     'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/youtube.upload',
-    'https://www.googleapis.com/auth/youtubepartner',
     'https://www.googleapis.com/auth/yt-analytics.readonly',
   ];
+
+  // Google revokes the whole grant (access and refresh token) when either token is revoked
+  async revokeAccess(accessToken: string, refreshToken?: string | null) {
+    const response = await fetch('https://oauth2.googleapis.com/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ token: refreshToken || accessToken }),
+    });
+
+    // 400 means the token was already revoked or expired, which is the state we want
+    if (!response.ok && response.status !== 400) {
+      throw new Error(`Google token revocation failed (${response.status})`);
+    }
+  }
 
   editor = 'normal' as const;
   maxLength() {

@@ -778,7 +778,7 @@ export class IntegrationRepository {
     });
   }
 
-  deleteChannel(org: string, id: string) {
+  deleteChannel(org: string, id: string, clearTokens = false) {
     return this._integration.model.integration.update({
       where: {
         id,
@@ -786,6 +786,7 @@ export class IntegrationRepository {
       },
       data: {
         deletedAt: new Date(),
+        ...(clearTokens ? { token: '', refreshToken: null } : {}),
       },
     });
   }

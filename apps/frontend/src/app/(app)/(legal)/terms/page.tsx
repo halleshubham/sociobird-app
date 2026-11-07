@@ -16,7 +16,7 @@ export default function TermsOfServicePage() {
   return (
     <>
       <h1 className="text-[28px] font-semibold mb-[8px]">Terms of Service</h1>
-      <P>Last updated: 17 September 2026</P>
+      <P>Last updated: 7 November 2026</P>
 
       <P>
         These Terms of Service (&quot;Terms&quot;) govern your access to and use of
@@ -108,6 +108,37 @@ export default function TermsOfServicePage() {
         not responsible for changes, outages, rate limits, or policy enforcement
         actions on the part of any third-party platform, including account
         suspensions caused by your use of that platform.
+      </P>
+      <P>
+        If you connect a YouTube channel, you also agree to be bound by the{' '}
+        <a
+          href="https://www.youtube.com/t/terms"
+          className="underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          YouTube Terms of Service
+        </a>
+        , and your data is handled as described in the{' '}
+        <a
+          href="https://policies.google.com/privacy"
+          className="underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Google Privacy Policy
+        </a>
+        . You can revoke SocioBird's access to your Google account at any time on
+        the{' '}
+        <a
+          href="https://myaccount.google.com/permissions"
+          className="underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Google Account permissions page
+        </a>
+        .
       </P>
 
       <H2>8. AI features</H2>

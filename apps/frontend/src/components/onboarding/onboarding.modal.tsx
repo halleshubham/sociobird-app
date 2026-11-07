@@ -274,7 +274,6 @@ const otherAgents = mcpClients.filter(
 const apiTab = 'API' as const;
 type OnboardingTab = OnboardingAgent | typeof otherTab | typeof apiTab;
 
-const cliCommands = localCliSteps.map((step) => step.code);
 
 // Cursor one-click install: https://cursor.com/docs/mcp/install-links
 const getCursorInstallUrl = (
@@ -334,6 +333,14 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
       : null;
 
   const maskedApiKey = revealed ? apiKey : '*'.repeat(apiKey.length);
+
+  // the copied commands carry the real key, the screen shows it masked
+  const cliCommands = localCliSteps.map((step) =>
+    step.code.replace('{API_KEY}', apiKey)
+  );
+  const cliCommandsShown = localCliSteps.map((step) =>
+    step.code.replace('{API_KEY}', maskedApiKey)
+  );
 
   const chatSection = (
     <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder overflow-hidden">
@@ -533,7 +540,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
       </div>
       <div className="p-[20px] flex flex-col gap-[8px] flex-1">
         <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[12px] text-[12px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.5] flex-1">
-          {cliCommands.join('\n')}
+          {cliCommandsShown.join('\n')}
         </pre>
         <div className="flex gap-[8px]">
           <CopyButton

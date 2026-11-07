@@ -461,8 +461,8 @@ export const localCliSteps = [
     code: 'export POSTIZ_API_URL="https://go.sociobird.app/api"',
   },
   {
-    label: 'Set your SocioBird API key (shown in the CI / Remote servers tab)',
-    code: 'export POSTIZ_API_KEY="<your-api-key>"',
+    label: 'Set your SocioBird API key',
+    code: 'export POSTIZ_API_KEY="{API_KEY}"',
   },
   {
     label: 'Install the agent skill for your AI agent',
@@ -494,24 +494,21 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
   const [mode, setMode] = useState<'local' | 'ci'>('local');
   const [revealed, setRevealed] = useState(false);
 
-  const steps =
-    mode === 'local'
-      ? localCliSteps.map((step) => ({ ...step }))
-      : ciCliSteps.map((step) => ({
-          ...step,
-          code: step.code.replace('{API_KEY}', apiKey),
-        }));
+  // Both tabs carry the real key (copy-paste ready), masked on screen until Reveal
+  const steps = (mode === 'local' ? localCliSteps : ciCliSteps).map((step) => ({
+    ...step,
+    code: step.code.replace('{API_KEY}', apiKey),
+  }));
 
-  const displaySteps =
-    mode === 'ci' && !revealed
-      ? steps.map((step) => ({
-          ...step,
-          code: step.code.replace(
-            new RegExp(apiKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-            '*'.repeat(apiKey.length)
-          ),
-        }))
-      : steps;
+  const displaySteps = !revealed
+    ? steps.map((step) => ({
+        ...step,
+        code: step.code.replace(
+          new RegExp(apiKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+          '*'.repeat(apiKey.length)
+        ),
+      }))
+    : steps;
 
   return (
     <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder overflow-hidden">
@@ -569,7 +566,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
           </div>
         ))}
         <div className="flex gap-[8px]">
-          {mode === 'ci' && (
+          {!!apiKey && (
             <button
               type="button"
               onClick={() => setRevealed(!revealed)}

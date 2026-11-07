@@ -70,19 +70,10 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     'https://www.googleapis.com/auth/yt-analytics.readonly',
   ];
 
-  // Google revokes the whole grant (access and refresh token) when either token is revoked
-  async revokeAccess(accessToken: string, refreshToken?: string | null) {
-    const response = await fetch('https://oauth2.googleapis.com/revoke', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ token: refreshToken || accessToken }),
-    });
-
-    // 400 means the token was already revoked or expired, which is the state we want
-    if (!response.ok && response.status !== 400) {
-      throw new Error(`Google token revocation failed (${response.status})`);
-    }
-  }
+  // Google data: the tokens go as soon as the channel is disconnected. The Google grant itself is NOT
+  // revoked here: it is shared by every channel of the same Google account that is connected, so
+  // revoking it would break the others. Users can revoke it at myaccount.google.com/permissions.
+  deleteTokensOnDisconnect = true;
 
   editor = 'normal' as const;
   maxLength() {

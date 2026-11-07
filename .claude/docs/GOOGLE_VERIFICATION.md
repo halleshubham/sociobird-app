@@ -20,7 +20,7 @@ Google Business Profile (`business.manage`, `gmb.provider.ts`) is **not** part o
 
 ## Code facts the submission relies on (keep them true)
 
-- Disconnecting a YouTube channel revokes the grant at Google (`https://oauth2.googleapis.com/revoke`, `YoutubeProvider.revokeAccess`) and clears `token`/`refreshToken` (`IntegrationService.deleteChannel`).
+- Disconnecting a YouTube channel deletes its stored `token`/`refreshToken` straight away (`YoutubeProvider.deleteTokensOnDisconnect`, `IntegrationService.deleteChannel`). It does **not** revoke the Google grant: one Google account can have several channels connected, and revoking the grant would break the others. Users revoke at `https://myaccount.google.com/permissions`.
 - Account deletion overwrites stored tokens irreversibly (`IntegrationRepository.deleteIntegrationsForAccount`); it does **not** call Google's revoke endpoint.
 - Channel tokens are stored in Postgres as plain columns (no application-level encryption). The privacy page therefore says "in our database, with access limited to the service" and does not claim encryption at rest. Add that claim only if the database volume is encrypted and you can show it.
 - Channel name, picture and analytics of published posts stay with the (soft-deleted) channel record until account deletion; the privacy page promises deletion within 7 days on request or after a revocation at Google. That is a manual commitment: do it when asked.
@@ -60,7 +60,7 @@ Do these in the Google Cloud project that owns `YOUTUBE_CLIENT_ID`.
 4. Pick the channel in the channel picker (shows name and avatar: userinfo + youtube.readonly).
 5. Create a post for that channel: video file, title, description, thumbnail, privacy status, schedule for a time two minutes ahead (youtube.upload). Show it publishing on YouTube Studio.
 6. Open **Analytics** for the channel and a published video (yt-analytics.readonly, videos.list).
-7. Open the channel menu and **Disconnect**. Then open `https://myaccount.google.com/permissions` and show SocioBird is no longer listed.
+7. Open the channel menu and **Disconnect**; the channel disappears from SocioBird (its stored token is deleted). Then open `https://myaccount.google.com/permissions`, remove SocioBird there, go back to SocioBird and show that a still-connected channel now asks to be reconnected (the grant is gone). Do not expect SocioBird to vanish from that Google page after a single disconnect: one Google account can have several channels connected.
 8. Show the privacy page section "Google user data" and the Limited Use sentence.
 
 ## Part 2: YouTube API Services audit and quota extension

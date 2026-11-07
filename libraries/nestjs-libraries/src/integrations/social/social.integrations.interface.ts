@@ -171,12 +171,8 @@ export interface SocialProvider
   // set by providers that cost us money per post: what one post of this content counts against the plan's metered allowance
   meteredCost?: (content: string, linksStripped: boolean) => number;
   refreshCron?: boolean;
-  // revokes the stored credentials at the platform when the user disconnects the channel
-  // (providers that implement it also get their stored tokens cleared on disconnect)
-  revokeAccess?: (
-    accessToken: string,
-    refreshToken?: string | null
-  ) => Promise<void>;
+  // the stored tokens are deleted as soon as the channel is disconnected (the channel row is only soft-deleted)
+  deleteTokensOnDisconnect?: boolean;
   dto?: any;
   maxLength: (additionalSettings?: any, settings?: any) => number;
   checkValidity(

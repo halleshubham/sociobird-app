@@ -150,13 +150,16 @@ export default function PrivacyPolicyPage() {
         Google account in our database, with access limited to the service,
         for as long as the channel stays connected, plus the channel/location
         metadata (name and picture) and post-level analytics described above.
-        Disconnecting a channel from your SocioBird settings revokes the token
-        with Google and clears it from our database straight away. The
+        Disconnecting a channel from your SocioBird settings deletes its stored
+        token from our database straight away. Because the same Google account
+        can have several channels connected to SocioBird, we do not revoke your
+        Google authorization automatically when you disconnect one of them. The
         channel's name, picture, and analytics for the posts we published stay
         with your account's history until you delete your account; if you would
         like them removed sooner, or you revoke SocioBird's access at Google,
         write to us and we delete the data we hold for that channel within 7
-        days. You can revoke SocioBird's access at any time directly from your{' '}
+        days. You can revoke SocioBird's access to your Google account at any
+        time directly from your{' '}
         <a
           href="https://myaccount.google.com/permissions"
           className="underline"

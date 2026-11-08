@@ -396,35 +396,19 @@ export class IntegrationService {
       id
     );
 
-    // Providers that can revoke their credentials (e.g. Google) are revoked at
-    // the platform and their stored tokens are cleared, so a disconnected
-    // channel keeps no usable access. A failed revocation must not block the
-    // disconnect: the token may already be revoked or expired.
-    const provider = integration
-      ? this.getRevokingProvider(integration.providerIdentifier)
-      : undefined;
-
-    if (integration && provider) {
-      try {
-        await provider.revokeAccess!(
-          integration.token,
-          integration.refreshToken
-        );
-      } catch (err) {
-        // nothing more to do here: the stored tokens are cleared below either way
-      }
-      return this._integrationRepository.deleteChannel(org, id, true);
-    }
-
-    return this._integrationRepository.deleteChannel(org, id);
+    return this._integrationRepository.deleteChannel(
+      org,
+      id,
+      !!integration && this.deletesTokensOnDisconnect(integration.providerIdentifier)
+    );
   }
 
-  private getRevokingProvider(identifier: string) {
+  private deletesTokensOnDisconnect(identifier: string) {
     try {
-      const provider = this._integrationManager.getSocialIntegration(identifier);
-      return provider?.revokeAccess ? provider : undefined;
+      return !!this._integrationManager.getSocialIntegration(identifier)
+        ?.deleteTokensOnDisconnect;
     } catch (err) {
-      return undefined;
+      return false;
     }
   }
 

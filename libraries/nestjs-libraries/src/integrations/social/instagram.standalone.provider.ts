@@ -63,7 +63,7 @@ export class InstagramStandaloneProvider
         return 'Trial Reels must be a video';
       }
     }
-    return true;
+    return instagramProvider.checkVideoSize(firstPost, settings);
   }
 
   public override handleErrors(

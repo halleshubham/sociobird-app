@@ -20,6 +20,11 @@ import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorato
 import { META_GRAPH_API_VERSION } from '@gitroom/nestjs-libraries/integrations/social/facebook.provider';
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
 import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
+import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
+
+// Instagram API video limits (Reel / Story specifications of the IG User Media reference)
+const REEL_MAX_BYTES = 300 * 1024 * 1024;
+const STORY_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
 
 @Rules(
   "Instagram should have at least one attachment, if it's a story, it can have only one picture"
@@ -83,7 +88,53 @@ export class InstagramProvider
         return 'Audio can only be added to a video Reel';
       }
     }
+
+    return this.checkVideoSize(firstPost, settings);
+  }
+
+  // Single videos are published as Reels (or Stories) and have a size limit.
+  // Best effort: when the size cannot be read the post goes on. Also used by
+  // the standalone provider, which publishes through this class.
+  async checkVideoSize(
+    media: ValidityMedia[],
+    settings: any
+  ): Promise<string | true> {
+    const isStory = settings?.post_type === 'story';
+    if (media.length !== 1 && !isStory) {
+      return true;
+    }
+    const video = media.find((f) => isVideoPath(f?.path));
+    if (!video) {
+      return true;
+    }
+    const limitBytes = isStory ? STORY_VIDEO_MAX_BYTES : REEL_MAX_BYTES;
+    const limitMb = limitBytes / 1024 / 1024;
+    const size = await this.videoSize(video.path);
+    const sizeMb = Math.round(size / 1024 / 1024);
+    if (sizeMb > limitMb) {
+      return `Instagram ${
+        isStory ? 'Stories' : 'Reels'
+      } allow videos up to ${limitMb}MB, this one is ${sizeMb}MB. Export a smaller version (1080px wide, up to 25Mbps).`;
+    }
     return true;
+  }
+
+  private async videoSize(path: string): Promise<number> {
+    try {
+      const response = await fetch(path, {
+        method: 'HEAD',
+        // identity encoding so content-length matches the bytes the GET streams
+        headers: { 'accept-encoding': 'identity' },
+        signal: AbortSignal.timeout(5000),
+        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+        dispatcher: getSsrfSafeDispatcher(),
+      });
+      return response.ok
+        ? Number(response.headers.get('content-length') || 0)
+        : 0;
+    } catch (err) {
+      return 0;
+    }
   }
 
   async refreshToken(refresh_token: string): Promise<AuthTokenDetails> {
@@ -676,11 +727,14 @@ export class InstagramProvider
     ).json();
 
     if (status_code === 'ERROR' || status_code === 'EXPIRED') {
+      const json = JSON.stringify({ status_code, status });
       throw new BadBody(
         this.identifier,
-        JSON.stringify({ status_code, status }),
+        json,
         '{}',
-        status || 'Instagram could not process the media'
+        this.handleErrors(json, 400)?.value ||
+          status ||
+          'Instagram could not process the media'
       );
     }
 

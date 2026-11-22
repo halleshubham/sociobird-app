@@ -89,22 +89,32 @@ export class InstagramProvider
       }
     }
 
-    // Single videos are published as Reels (or Stories) and have a size limit.
-    // The check is best effort: when the size cannot be read the post goes on.
+    return this.checkVideoSize(firstPost, settings);
+  }
+
+  // Single videos are published as Reels (or Stories) and have a size limit.
+  // Best effort: when the size cannot be read the post goes on. Also used by
+  // the standalone provider, which publishes through this class.
+  async checkVideoSize(
+    media: ValidityMedia[],
+    settings: any
+  ): Promise<string | true> {
     const isStory = settings?.post_type === 'story';
-    const video = firstPost.length === 1 || isStory
-      ? firstPost.find((f) => isVideoPath(f?.path))
-      : undefined;
-    if (video) {
-      const size = await this.videoSize(video.path);
-      const max = isStory ? STORY_VIDEO_MAX_BYTES : REEL_MAX_BYTES;
-      if (size > max) {
-        return `Instagram ${isStory ? 'Stories accept videos' : 'Reels accept videos'} up to ${
-          max / 1024 / 1024
-        }MB, this video is ${Math.round(
-          size / 1024 / 1024
-        )}MB. Export a smaller version (1080px wide, up to 25Mbps) and upload it again`;
-      }
+    if (media.length !== 1 && !isStory) {
+      return true;
+    }
+    const video = media.find((f) => isVideoPath(f?.path));
+    if (!video) {
+      return true;
+    }
+    const limitBytes = isStory ? STORY_VIDEO_MAX_BYTES : REEL_MAX_BYTES;
+    const limitMb = limitBytes / 1024 / 1024;
+    const size = await this.videoSize(video.path);
+    const sizeMb = Math.round(size / 1024 / 1024);
+    if (sizeMb > limitMb) {
+      return `Instagram ${
+        isStory ? 'Stories' : 'Reels'
+      } allow videos up to ${limitMb}MB, this one is ${sizeMb}MB. Export a smaller version (1080px wide, up to 25Mbps).`;
     }
     return true;
   }
@@ -113,14 +123,16 @@ export class InstagramProvider
     try {
       const response = await fetch(path, {
         method: 'HEAD',
-        // identity encoding so content-length is the size of the file itself
+        // identity encoding so content-length matches the bytes the GET streams
         headers: { 'accept-encoding': 'identity' },
         signal: AbortSignal.timeout(5000),
         // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       });
-      return response.ok ? Number(response.headers.get('content-length') || 0) : 0;
-    } catch {
+      return response.ok
+        ? Number(response.headers.get('content-length') || 0)
+        : 0;
+    } catch (err) {
       return 0;
     }
   }

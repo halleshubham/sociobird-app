@@ -20,6 +20,11 @@ import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorato
 import { META_GRAPH_API_VERSION } from '@gitroom/nestjs-libraries/integrations/social/facebook.provider';
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
 import { isVideoPath } from '@gitroom/helpers/utils/has.extension';
+import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
+
+// Instagram API video limits (Reel / Story specifications of the IG User Media reference)
+const REEL_MAX_BYTES = 300 * 1024 * 1024;
+const STORY_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
 
 @Rules(
   "Instagram should have at least one attachment, if it's a story, it can have only one picture"
@@ -83,7 +88,41 @@ export class InstagramProvider
         return 'Audio can only be added to a video Reel';
       }
     }
+
+    // Single videos are published as Reels (or Stories) and have a size limit.
+    // The check is best effort: when the size cannot be read the post goes on.
+    const isStory = settings?.post_type === 'story';
+    const video = firstPost.length === 1 || isStory
+      ? firstPost.find((f) => isVideoPath(f?.path))
+      : undefined;
+    if (video) {
+      const size = await this.videoSize(video.path);
+      const max = isStory ? STORY_VIDEO_MAX_BYTES : REEL_MAX_BYTES;
+      if (size > max) {
+        return `Instagram ${isStory ? 'Stories accept videos' : 'Reels accept videos'} up to ${
+          max / 1024 / 1024
+        }MB, this video is ${Math.round(
+          size / 1024 / 1024
+        )}MB. Export a smaller version (1080px wide, up to 25Mbps) and upload it again`;
+      }
+    }
     return true;
+  }
+
+  private async videoSize(path: string): Promise<number> {
+    try {
+      const response = await fetch(path, {
+        method: 'HEAD',
+        // identity encoding so content-length is the size of the file itself
+        headers: { 'accept-encoding': 'identity' },
+        signal: AbortSignal.timeout(5000),
+        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+        dispatcher: getSsrfSafeDispatcher(),
+      });
+      return response.ok ? Number(response.headers.get('content-length') || 0) : 0;
+    } catch {
+      return 0;
+    }
   }
 
   async refreshToken(refresh_token: string): Promise<AuthTokenDetails> {
@@ -676,11 +715,14 @@ export class InstagramProvider
     ).json();
 
     if (status_code === 'ERROR' || status_code === 'EXPIRED') {
+      const json = JSON.stringify({ status_code, status });
       throw new BadBody(
         this.identifier,
-        JSON.stringify({ status_code, status }),
+        json,
         '{}',
-        status || 'Instagram could not process the media'
+        this.handleErrors(json, 400)?.value ||
+          status ||
+          'Instagram could not process the media'
       );
     }
 

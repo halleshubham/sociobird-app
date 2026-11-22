@@ -520,6 +520,65 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   // it is proven against X's APPEND limits; larger chunks are documented but
   // unproven here.
   private static readonly X_UPLOAD_CHUNK_SIZE = 1024 * 1024;
+  private static readonly X_UPLOAD_LEG_ATTEMPTS = 3;
+  private static readonly X_UPLOAD_LEG_RETRY_MS = 3000;
+
+  // A dropped connection, a cut-off answer (twitter-api-v2 ApiRequestError /
+  // ApiPartialResponseError), an X 5xx, or a failed read of the media server.
+  // A 429 is left to uploadWithRateLimitRetry, which backs off longer.
+  private isTransientUploadError(err: any) {
+    if (err?.type === 'request' || err?.type === 'partial-response') {
+      return true;
+    }
+
+    if (err?.type === 'response') {
+      return typeof err?.code === 'number' && err.code >= 500;
+    }
+
+    return /fetch failed|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up/i.test(
+      `${err?.message ?? ''} ${err?.cause?.code ?? ''}`
+    );
+  }
+
+  private describeUploadError(err: any) {
+    const root = err?.requestError ?? err?.responseError ?? err?.cause ?? err;
+    return [err?.type, err?.code ?? root?.code, root?.message ?? err?.message]
+      .filter(Boolean)
+      .join(' ')
+      .slice(0, 200);
+  }
+
+  // The chunked video upload is ~35 sequential calls to X (initialize, one
+  // append per 1 MB, finalize). One dropped connection used to fail the whole
+  // post, so every leg retries on its own: a chunk is addressed by its
+  // segment_index and nothing is published until the post itself is created,
+  // so repeating a leg cannot duplicate anything.
+  private async uploadLeg<T>(label: string, func: () => Promise<T>): Promise<T> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await func();
+      } catch (err: any) {
+        if (!this.isTransientUploadError(err)) {
+          throw err;
+        }
+
+        const detail = this.describeUploadError(err);
+        if (attempt >= XProvider.X_UPLOAD_LEG_ATTEMPTS) {
+          throw new BadBody(
+            this.identifier,
+            JSON.stringify({ leg: label, attempts: attempt, error: detail }),
+            Buffer.from('{}'),
+            `X upload failed at ${label} after ${attempt} attempts (${detail})`
+          );
+        }
+
+        setHeartbeatDetails(
+          `x: retry ${label} (attempt ${attempt + 1}/${XProvider.X_UPLOAD_LEG_ATTEMPTS}) after ${detail}`
+        );
+        await timer(XProvider.X_UPLOAD_LEG_RETRY_MS * attempt);
+      }
+    }
+  }
 
   private async uploadVideoInChunks(client: TwitterApi, path: string) {
     const totalBytes = await this.mediaSize(path, this.identifier);
@@ -529,13 +588,12 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     // heartbeat details - otherwise a stall here reports only the generic
     // "x: publish" stage marker set by the activity.
     setHeartbeatDetails(`x: upload initialize (${totalBytes} bytes)`);
-    const init = await client.v2.post<{ data: { id: string } }>(
-      'media/upload/initialize',
-      {
+    const init = await this.uploadLeg('initialize', () =>
+      client.v2.post<{ data: { id: string } }>('media/upload/initialize', {
         media_type: mediaType,
         total_bytes: totalBytes,
         media_category: 'tweet_video',
-      }
+      })
     );
     const mediaId = init.data.id;
 
@@ -547,23 +605,27 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       setHeartbeatDetails(
         `x: upload append ${i + 1}/${totalChunkCount} media=${mediaId}`
       );
-      await client.v2.post(
-        `media/upload/${mediaId}/append`,
-        {
-          segment_index: i,
-          media: await this.mediaChunk(path, start, end, this.identifier),
-        },
-        { forceBodyMode: 'form-data' }
+      await this.uploadLeg(`append ${i + 1}/${totalChunkCount}`, async () =>
+        client.v2.post(
+          `media/upload/${mediaId}/append`,
+          {
+            segment_index: i,
+            media: await this.mediaChunk(path, start, end, this.identifier),
+          },
+          { forceBodyMode: 'form-data' }
+        )
       );
     }
 
     setHeartbeatDetails(`x: upload finalize media=${mediaId}`);
-    const finalize = await client.v2.post<{
-      data: {
-        id: string;
-        processing_info?: { state: string; check_after_secs?: number };
-      };
-    }>(`media/upload/${mediaId}/finalize`);
+    const finalize = await this.uploadLeg('finalize', () =>
+      client.v2.post<{
+        data: {
+          id: string;
+          processing_info?: { state: string; check_after_secs?: number };
+        };
+      }>(`media/upload/${mediaId}/finalize`)
+    );
 
     const processing = finalize.data.processing_info;
 

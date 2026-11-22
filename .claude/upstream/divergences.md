@@ -47,6 +47,10 @@ Update this page when you add a new area of divergence. It is curated, not gener
 - YouTube title optional when posting to several platforms (`youtube.provider.ts` + frontend + settings DTO, #8).
 - Botsab group/contact posts are handed to Botsab's campaign runner with fixed pacing (`GROUP_CAMPAIGN_OPTIONS`, #7).
 
+### X chunked video upload retries
+- `libraries/nestjs-libraries/src/integrations/social/x.provider.ts`: `uploadLeg`, `isTransientUploadError`, `describeUploadError`; `uploadVideoInChunks` runs initialize, every 1 MB append and finalize through `uploadLeg` (3 attempts, 3 s then 6 s pause) on a dropped connection, a cut-off answer, an X 5xx or a failed read of the media server. A 429 stays with `uploadWithRateLimitRetry`.
+- Ours. Upstream has no retry for the X upload (checked against upstream `6be48746`, 2026-11-20; the upload section was identical to ours before this change). When it fails for good the message names the leg and the real network error instead of "Unknown Error".
+
 ## Smaller or infra-level differences
 
 - `AI_VIDEO_GENERATION_ENABLED` kill switch (`videos/video.config.ts`, `video.manager.ts`).
